@@ -864,4 +864,4 @@ process.on('uncaughtException', (err) => {
     exec(`pm2 restart ${process.env.PM2_NAME || 'SILA-MD'}`);
 });
 
-module.exports = { router, EmpirePair };
+module.exports = router;
