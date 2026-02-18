@@ -1,45 +1,56 @@
 const { cmd } = global;
 const config = require('../config');
-const { fkontak, getContextInfo } = require('../lib/functions');
+const { fkontak, getContextInfo, getTimestamp, formatBytes } = require('../lib/functions');
 const os = require('os');
-const axios = require('axios');
 
 cmd({
     pattern: "alive",
     alias: ["bot", "status", "test"],
-    desc: "Premium alive command with interactive buttons",
+    desc: "Check if bot is alive with interactive buttons",
     category: "general",
     react: "🔮",
     filename: __filename
 }, async (conn, mek, m, { from, sender, isOwner, prefix, args }) => {
     try {
-        // Send typing indicator
-        await conn.sendPresenceUpdate('composing', from);
-        
-        // Send reaction
+        // Send initial reaction
         await conn.sendMessage(from, { 
             react: { text: '🔮', key: mek.key } 
         });
 
-        // Get stats
+        // Get system stats
         const startTime = global.socketCreationTime?.get(sender.split('@')[0]) || Date.now();
         const uptime = Math.floor((Date.now() - startTime) / 1000);
         const hours = Math.floor(uptime / 3600);
         const minutes = Math.floor((uptime % 3600) / 60);
-        const seconds = uptime % 60;
+        const seconds = Math.floor(uptime % 60);
         
         const usedMemory = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
         const totalMemory = Math.round(os.totalmem() / 1024 / 1024);
-        const freeMemory = Math.round(os.freemem() / 1024 / 1024);
-        const cpuCount = os.cpus().length;
-        const platform = os.platform();
         const activeCount = global.activeSockets?.size || 0;
 
-        // Format uptime string
-        const uptimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        // ============================================
+        // 📌 CREATE INTERACTIVE BUTTON MESSAGE
+        // ============================================
+        const aliveMessage = {
+            image: { url: config.IMAGE_PATH },
+            caption: `*╭━━━〔 🐢 ${config.BOT_NAME} 🐢 〕━━━┈⊷*
+*┃🐢│ 𝙱𝙾𝚃: ${config.BOT_NAME}*
+*┃🐢│ 𝚄𝚂𝙴𝚁: @${sender.split('@')[0]}*
+*┃🐢│ 𝚄𝙿𝚃𝙸𝙼𝙴: ${hours}h ${minutes}m ${seconds}s*
+*┃🐢│ 𝙼𝙴𝙼𝙾𝚁𝚈: ${usedMemory}MB / ${totalMemory}MB*
+*┃🐢│ 𝙰𝙲𝚃𝙸𝚅𝙴: ${activeCount} sessions*
+*┃🐢│ 𝚅𝙴𝚁𝚂𝙸𝙾𝙽: ${config.version}*
+*╰━━━━━━━━━━━━━━━┈⊷*
+
+> ${config.BOT_FOOTER}`,
+            contextInfo: getContextInfo({ sender: sender })
+        };
+
+        // Send image with caption first
+        await conn.sendMessage(from, aliveMessage, { quoted: fkontak });
 
         // ============================================
-        // 📌 CREATE INTERACTIVE BUTTON MESSAGE (Template)
+        // 📌 CREATE BUTTON MESSAGE (Interactive)
         // ============================================
         const buttons = [
             {
@@ -55,73 +66,34 @@ cmd({
                     display_text: "📍 𝙿𝙸𝙽𝙶",
                     id: `${prefix || config.PREFIX}ping`
                 })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "📊 𝚂𝚃𝙰𝚃𝚂",
-                    id: `${prefix || config.PREFIX}bot_stats`
-                })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "👑 𝙾𝚆𝙽𝙴𝚁",
-                    id: `${prefix || config.PREFIX}owner`
-                })
             }
         ];
 
-        // Send image first
-        await conn.sendMessage(from, {
-            image: { url: config.IMAGE_PATH },
-            caption: `╔══━━━〔 🐢 𝙰𝙻𝙸𝚅𝙴 〕━━━══╗
-┃
-┃   🔮 *${config.BOT_NAME}*
-┃   ⚡ 𝚅𝙴𝚁𝚂𝙸𝙾𝙽: ${config.version}
-┃   🕒 𝚄𝙿𝚃𝙸𝙼𝙴: ${uptimeStr}
-┃   💾 𝚁𝙰𝙼: ${usedMemory}MB / ${totalMemory}MB
-┃   📊 𝙲𝙿𝚄: ${cpuCount} Core
-┃   🌐 𝙿𝙻𝙰𝚃𝙵𝙾𝚁𝙼: ${platform}
-┃   👥 𝙰𝙲𝚃𝙸𝚅𝙴: ${activeCount}
-┃
-╚══━━━〔 🐢 𝚂𝙴𝙻𝙴𝙲𝚃 〕━━━══╝`,
-            contextInfo: getContextInfo({ sender: sender })
-        }, { quoted: fkontak });
-
-        // Send interactive buttons
         const buttonMessage = {
-            text: `*⚡ 𝚀𝚄𝙸𝙲𝙺 𝙰𝙲𝚃𝙸𝙾𝙽𝚂*\n\n𝙿𝚛𝚎𝚜𝚜 𝚊 𝚋𝚞𝚝𝚝𝚘𝚗 𝚝𝚘 𝚎𝚡𝚎𝚌𝚞𝚝𝚎 𝚌𝚘𝚖𝚖𝚊𝚗𝚍:`,
+            text: `*⚡ 𝚀𝚞𝚒𝚌𝚔 𝙰𝚌𝚝𝚒𝚘𝚗𝚜*\n\n𝙲𝚑𝚘𝚘𝚜𝚎 𝚊𝚗 𝚘𝚙𝚝𝚒𝚘𝚗 𝚋𝚎𝚕𝚘𝚠:`,
             footer: config.BOT_FOOTER,
+            viewOnce: true,
             buttons: buttons,
             headerType: 1,
-            viewOnce: true,
             contextInfo: getContextInfo({ sender: sender })
         };
 
+        // Send button message
         await conn.sendMessage(from, buttonMessage, { quoted: fkontak });
 
         // ============================================
-        // 📌 HANDLE BUTTON RESPONSE (In case of direct click)
+        // 📌 HANDLE BUTTON RESPONSES
         // ============================================
-        // Buttons automatically trigger commands because ID contains prefix + command
+        // Note: Button responses are handled automatically by the command handler
+        // because the button ID contains the command with prefix
 
     } catch (error) {
-        console.error('Alive premium error:', error);
+        console.error('Alive command error:', error);
         
-        // Ultra simple fallback
+        // Fallback to simple message if buttons fail
         await conn.sendMessage(from, {
-            text: `╔══━━━〔 🐢 𝙰𝙻𝙸𝚅𝙴 〕━━━══╗
-┃
-┃   🔮 *${config.BOT_NAME} 𝙸𝚂 𝙾𝙽𝙻𝙸𝙽𝙴*
-┃   📌 𝙿𝚛𝚎𝚏𝚒𝚡: ${prefix || config.PREFIX || 'None'}
-┃
-┃   📋 𝙼𝚎𝚗𝚞: ${prefix || config.PREFIX}menu
-┃   📍 𝙿𝚒𝚗𝚐: ${prefix || config.PREFIX}ping
-┃
-╚══━━━〔 🐢 𝚃𝙷𝙰𝙽𝙺𝚂 〕━━━══╝
-
-> ${config.BOT_FOOTER}`,
+            image: { url: config.IMAGE_PATH },
+            caption: `*🤖 ${config.BOT_NAME} 𝙰𝙻𝙸𝚅𝙴*\n\n𝚃𝚢𝚙𝚎 *${prefix || config.PREFIX}menu* 𝚏𝚘𝚛 𝚌𝚘𝚖𝚖𝚊𝚗𝚍𝚜\n\n> ${config.BOT_FOOTER}`,
             contextInfo: getContextInfo({ sender: sender })
         }, { quoted: fkontak });
     }
