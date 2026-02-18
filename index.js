@@ -1,29 +1,49 @@
 const express = require('express');
 const app = express();
-__path = process.cwd()
+const path = require('path');
 const bodyParser = require("body-parser");
 const PORT = process.env.PORT || 8000;
-let code = require('./pair'); 
 
-require('events').EventEmitter.defaultMaxListeners = 500;
+// Import routes
+const pairRoute = require('./pair');
+const adminApi = require('./admin-api');
 
-app.use('/code', code);
-app.use('/pair', async (req, res, next) => {
-    res.sendFile(__path + '/pair.html')
-});
-app.use('/', async (req, res, next) => {
-    res.sendFile(__path + '/main.html')
-});
+// Set up global objects
+global.activeSockets = new Map();
+global.EmpirePair = require('./pair').EmpirePair;
 
+// Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Serve static files
+app.use('/code', pairRoute);
+app.use('/api', adminApi);
+
+// HTML pages
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'main.html'));
+});
+
+app.get('/pair', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pair.html'));
+});
+
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-panel.html'));
+});
+
+// Start server
 app.listen(PORT, () => {
     console.log(`
-Don't Forget To Give Star
-
-
-Server running on http://localhost:` + PORT)
+    ╭━━━〔 🐢 𝙎𝙄𝙇𝘼-𝙈𝘿 🐢 〕━━━┈⊷
+    ┃
+    ┃ 🚀 Server: http://localhost:${PORT}
+    ┃ 👑 Admin: http://localhost:${PORT}/admin
+    ┃ 🔗 Pair: http://localhost:${PORT}/pair
+    ┃
+    ╰━━━━━━━━━━━━━━━┈⊷
+    `);
 });
 
 module.exports = app;
