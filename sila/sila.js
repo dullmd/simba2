@@ -31,7 +31,7 @@ const {
 // ============================================
 // 📌 LOAD CONFIGURATION
 // ============================================
-const config = require('./config');
+const config = require('../config');
 
 // ============================================
 // 📌 MONGODB CONNECTION
