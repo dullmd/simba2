@@ -4,7 +4,7 @@ const { fkontak, getContextInfo } = require('../lib/functions');
 const os = require('os');
 
 cmd({
-    pattern: "bot_stats",
+    pattern: "stats",
     alias: ["stats", "system"],
     desc: "Show detailed bot statistics",
     category: "general",
