@@ -19,24 +19,12 @@ async function isGroupAdmin(conn, groupJid, userJid) {
 // 📌 GET MENTIONED OR QUOTED USER
 // ============================================
 function getTargetUser(mek, args) {
-    // Check if quoted message
-    if (mek.quoted) {
-        return mek.quoted.sender;
-    }
-    
-    // Check if mentioned
-    if (mek.mentionedJid && mek.mentionedJid.length > 0) {
-        return mek.mentionedJid[0];
-    }
-    
-    // Check if number provided
+    if (mek.quoted) return mek.quoted.sender;
+    if (mek.mentionedJid && mek.mentionedJid.length > 0) return mek.mentionedJid[0];
     if (args[0]) {
         let number = args[0].replace(/[^0-9]/g, '');
-        if (number.length >= 10) {
-            return number + '@s.whatsapp.net';
-        }
+        if (number.length >= 10) return number + '@s.whatsapp.net';
     }
-    
     return null;
 }
 
@@ -52,7 +40,6 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, sender, isGroup, isOwner }) => {
     try {
-        // Check if in group
         if (!isGroup) {
             return await conn.sendMessage(from, {
                 text: "❌ *𝚃𝚑𝚒𝚜 𝚌𝚘𝚖𝚖𝚊𝚗𝚍 𝚌𝚊𝚗 𝚘𝚗𝚕𝚢 𝚋𝚎 𝚞𝚜𝚎𝚍 𝚒𝚗 𝚐𝚛𝚘𝚞𝚙𝚜!*",
@@ -60,7 +47,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Check if user is admin or owner
         const isAdmin = await isGroupAdmin(conn, from, sender);
         if (!isAdmin && !isOwner) {
             return await conn.sendMessage(from, {
@@ -69,10 +55,7 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Mute group (set to announcement mode)
         await conn.groupSettingUpdate(from, 'announcement');
-        
-        // Get group metadata for name
         const groupMetadata = await conn.groupMetadata(from);
         const groupName = groupMetadata.subject;
 
@@ -102,7 +85,6 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, sender, isGroup, isOwner }) => {
     try {
-        // Check if in group
         if (!isGroup) {
             return await conn.sendMessage(from, {
                 text: "❌ *𝚃𝚑𝚒𝚜 𝚌𝚘𝚖𝚖𝚊𝚗𝚍 𝚌𝚊𝚗 𝚘𝚗𝚕𝚢 𝚋𝚎 𝚞𝚜𝚎𝚍 𝚒𝚗 𝚐𝚛𝚘𝚞𝚙𝚜!*",
@@ -110,7 +92,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Check if user is admin or owner
         const isAdmin = await isGroupAdmin(conn, from, sender);
         if (!isAdmin && !isOwner) {
             return await conn.sendMessage(from, {
@@ -119,10 +100,7 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Unmute group (set to not announcement)
         await conn.groupSettingUpdate(from, 'not_announcement');
-        
-        // Get group metadata for name
         const groupMetadata = await conn.groupMetadata(from);
         const groupName = groupMetadata.subject;
 
@@ -152,7 +130,6 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, sender, args, isGroup, isOwner }) => {
     try {
-        // Check if in group
         if (!isGroup) {
             return await conn.sendMessage(from, {
                 text: "❌ *𝚃𝚑𝚒𝚜 𝚌𝚘𝚖𝚖𝚊𝚗𝚍 𝚌𝚊𝚗 𝚘𝚗𝚕𝚢 𝚋𝚎 𝚞𝚜𝚎𝚍 𝚒𝚗 𝚐𝚛𝚘𝚞𝚙𝚜!*",
@@ -160,7 +137,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Check if user is admin or owner
         const isAdmin = await isGroupAdmin(conn, from, sender);
         if (!isAdmin && !isOwner) {
             return await conn.sendMessage(from, {
@@ -169,11 +145,8 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Get group invite code
         const inviteCode = await conn.groupInviteCode(from);
         const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
-        
-        // Get group metadata
         const groupMetadata = await conn.groupMetadata(from);
         const groupName = groupMetadata.subject;
         const memberCount = groupMetadata.participants.length;
@@ -183,7 +156,6 @@ cmd({
             contextInfo: getContextInfo({ sender: sender, mentionedJid: [sender] })
         }, { quoted: fkontak });
 
-        // Also send the link separately for easy copying
         await conn.sendMessage(sender, {
             text: `🔗 *𝙶𝚛𝚘𝚞𝚙 𝙻𝚒𝚗𝚔:* ${inviteLink}`,
             contextInfo: getContextInfo({ sender: sender })
@@ -210,7 +182,6 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, sender, args, isGroup, isOwner }) => {
     try {
-        // Check if in group
         if (!isGroup) {
             return await conn.sendMessage(from, {
                 text: "❌ *𝚃𝚑𝚒𝚜 𝚌𝚘𝚖𝚖𝚊𝚗𝚍 𝚌𝚊𝚗 𝚘𝚗𝚕𝚢 𝚋𝚎 𝚞𝚜𝚎𝚍 𝚒𝚗 𝚐𝚛𝚘𝚞𝚙𝚜!*",
@@ -218,7 +189,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Check if user is admin or owner
         const isAdmin = await isGroupAdmin(conn, from, sender);
         if (!isAdmin && !isOwner) {
             return await conn.sendMessage(from, {
@@ -227,7 +197,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Check if number provided
         if (args.length === 0) {
             return await conn.sendMessage(from, {
                 text: `📌 *𝚄𝚜𝚊𝚐𝚎:* .𝚊𝚍𝚍 <𝚗𝚞𝚖𝚋𝚎𝚛>\n\n𝙴𝚡𝚊𝚖𝚙𝚕𝚎: .𝚊𝚍𝚍 255712345678`,
@@ -235,7 +204,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Format number
         let number = args[0].replace(/[^0-9]/g, '');
         if (number.startsWith('0')) {
             number = '255' + number.slice(1);
@@ -245,7 +213,6 @@ cmd({
         
         const userJid = number + '@s.whatsapp.net';
 
-        // Check if user exists on WhatsApp
         const [exists] = await conn.onWhatsApp(userJid);
         if (!exists || !exists.exists) {
             return await conn.sendMessage(from, {
@@ -254,10 +221,7 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Add to group
         await conn.groupParticipantsUpdate(from, [userJid], 'add');
-        
-        // Get group name
         const groupMetadata = await conn.groupMetadata(from);
         const groupName = groupMetadata.subject;
 
@@ -297,7 +261,6 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, sender, args, isGroup, isOwner }) => {
     try {
-        // Check if in group
         if (!isGroup) {
             return await conn.sendMessage(from, {
                 text: "❌ *𝚃𝚑𝚒𝚜 𝚌𝚘𝚖𝚖𝚊𝚗𝚍 𝚌𝚊𝚗 𝚘𝚗𝚕𝚢 𝚋𝚎 𝚞𝚜𝚎𝚍 𝚒𝚗 𝚐𝚛𝚘𝚞𝚙𝚜!*",
@@ -305,7 +268,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Check if user is admin or owner
         const isAdmin = await isGroupAdmin(conn, from, sender);
         if (!isAdmin && !isOwner) {
             return await conn.sendMessage(from, {
@@ -314,7 +276,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Get target user
         const targetUser = getTargetUser(mek, args);
         
         if (!targetUser) {
@@ -324,10 +285,7 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Get bot's JID
         const botJid = conn.user.id.split(':')[0] + '@s.whatsapp.net';
-
-        // Check if trying to kick bot
         if (targetUser === botJid) {
             return await conn.sendMessage(from, {
                 text: "❌ *𝙸 𝚌𝚊𝚗'𝚝 𝚔𝚒𝚌𝚔 𝚖𝚢𝚜𝚎𝚕𝚏!*",
@@ -335,7 +293,6 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Check if target is admin
         const isTargetAdmin = await isGroupAdmin(conn, from, targetUser);
         if (isTargetAdmin && !isOwner) {
             return await conn.sendMessage(from, {
@@ -344,10 +301,7 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Kick member
         await conn.groupParticipantsUpdate(from, [targetUser], 'remove');
-        
-        // Get group name
         const groupMetadata = await conn.groupMetadata(from);
         const groupName = groupMetadata.subject;
 
