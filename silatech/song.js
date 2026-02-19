@@ -5,8 +5,8 @@ const axios = require('axios');
 const fs = require('fs-extra');
 
 cmd({
-    pattern: "song",
-    alias: ["yt", "play", "video", "mp3", "mp4", "ytaudio", "ytvideo"],
+    pattern: "song2",
+    alias: ["yt", "play2", "video2", "mp3", "mp42", "ytaudio", "ytvideo"],
     desc: "Download YouTube videos/audio",
     category: "download",
     react: "🎵",
