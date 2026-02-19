@@ -1,4 +1,3 @@
-// silatech/song.js
 const { cmd } = global;
 const config = require('../config');
 const { fkontak, getContextInfo, sleep, downloadMediaMessage } = require('../lib/functions');
@@ -18,33 +17,29 @@ cmd({
         
         if (!userInput) {
             return await conn.sendMessage(from, {
-                text: `🎵 *𝙷𝚘𝚠 𝚝𝚘 𝚞𝚜𝚎 𝚜𝚘𝚗𝚐 𝚌𝚘𝚖𝚖𝚊𝚗𝚍:*\n\n` +
-                      `1️⃣ *𝙱𝚢 𝚄𝚁𝙻*\n` +
-                      `   ${prefix}𝚜𝚘𝚗𝚐 <𝚢𝚘𝚞𝚝𝚞𝚋𝚎-𝚞𝚛𝚕>\n\n` +
-                      `2️⃣ *𝙱𝚢 𝚂𝚎𝚊𝚛𝚌𝚑*\n` +
-                      `   ${prefix}𝚜𝚘𝚗𝚐 <𝚜𝚘𝚗𝚐 𝚗𝚊𝚖𝚎>\n\n` +
-                      `3️⃣ *𝙴𝚡𝚊𝚖𝚙𝚕𝚎:*\n` +
-                      `   ${prefix}𝚜𝚘𝚗𝚐 https://youtu.be/xxxxx\n` +
-                      `   ${prefix}𝚜𝚘𝚗𝚐 𝙰𝚍𝚎𝚕𝚎 𝙷𝚎𝚕𝚕𝚘`,
+                text: `🎵 *How to use song command:*\n\n` +
+                      `1️⃣ *By URL*\n` +
+                      `   ${prefix}song <youtube-url>\n\n` +
+                      `2️⃣ *By Search*\n` +
+                      `   ${prefix}song <song name>\n\n` +
+                      `3️⃣ *Example:*\n` +
+                      `   ${prefix}song https://youtu.be/xxxxx\n` +
+                      `   ${prefix}song Adele Hello`,
                 contextInfo: getContextInfo({ sender: sender })
             }, { quoted: fkontak });
         }
 
-        await conn.sendMessage(from, {
-            text: `*╭━━━〔 🐢 𝙿𝚁𝙾𝙲𝙴𝚂𝚂𝙸𝙽𝙶 〕━━━┈⊷*\n*┃🐢│*\n*┃🐢│ 🔍 𝙵𝚎𝚝𝚌𝚑𝚒𝚗𝚐: ${userInput.substring(0, 30)}...*\n*┃🐢│*\n*╰━━━━━━━━━━━━━━━┈⊷*`,
-            contextInfo: getContextInfo({ sender: sender })
-        }, { quoted: fkontak });
-
         // Search for video
-        let videoUrl, videoTitle, videoId;
+        let videoId, videoTitle, videoThumb, videoDuration;
         
         // Check if input is URL
         const urlMatch = userInput.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|.+\?v=)?([^&\n]{11})/);
         
         if (urlMatch) {
             videoId = urlMatch[1];
-            videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
             videoTitle = `Video_${videoId}`;
+            videoThumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+            videoDuration = 'Unknown';
         } else {
             // Search using API
             const searchApi = `https://weeb-api.vercel.app/ytsearch?query=${encodeURIComponent(userInput)}`;
@@ -56,17 +51,12 @@ cmd({
             
             const firstResult = searchRes.data[0];
             videoId = firstResult.id;
-            videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-            videoTitle = firstResult.title.replace(/[^\w\s]/gi, '').substring(0, 50);
-            
-            await conn.sendMessage(from, {
-                image: { url: firstResult.thumbnail },
-                caption: `*╭━━━〔 🐢 𝚁𝙴𝚂𝚄𝙻𝚃 𝙵𝙾𝚄𝙽𝙳 〕━━━┈⊷*\n*┃🐢│*\n*┃🐢│ 🎵 𝚃𝚒𝚝𝚕𝚎: ${firstResult.title}*\n*┃🐢│ ⏱️ 𝙳𝚞𝚛𝚊𝚝𝚒𝚘𝚗: ${firstResult.timestamp || 'Unknown'}*\n*┃🐢│*\n*╰━━━━━━━━━━━━━━━┈⊷*`,
-                contextInfo: getContextInfo({ sender: sender })
-            }, { quoted: fkontak });
+            videoTitle = firstResult.title;
+            videoThumb = firstResult.thumbnail;
+            videoDuration = firstResult.timestamp || 'Unknown';
         }
 
-        // Format selection buttons
+        // Format selection buttons - 4 options
         const buttons = [
             {
                 buttonId: `${prefix}song_mp3_${videoId}`,
@@ -91,10 +81,11 @@ cmd({
         ];
 
         const buttonMessage = {
-            text: `*╭━━━〔 🐢 𝙲𝙷𝙾𝙾𝚂𝙴 𝙵𝙾𝚁𝙼𝙰𝚃 〕━━━┈⊷*\n*┃🐢│*\n*┃🐢│ 🎵 𝚃𝚒𝚝𝚕𝚎: ${videoTitle.substring(0, 30)}...*\n*┃🐢│*\n*┃🐢│ 𝙿𝚕𝚎𝚊𝚜𝚎 𝚜𝚎𝚕𝚎𝚌𝚝 𝚏𝚘𝚛𝚖𝚊𝚝:*\n*┃🐢│*\n*╰━━━━━━━━━━━━━━━┈⊷*\n\n> ${config.BOT_FOOTER}`,
+            image: { url: videoThumb },
+            caption: `🎵 *${videoTitle}*\n⏱️ Duration: ${videoDuration}\n\n📌 *Choose format:*`,
             footer: config.BOT_FOOTER,
             buttons: buttons,
-            headerType: 1,
+            headerType: 4, // 4 = IMAGE
             contextInfo: getContextInfo({ sender: sender })
         };
 
@@ -103,7 +94,7 @@ cmd({
     } catch (error) {
         console.error('Song command error:', error);
         await conn.sendMessage(from, {
-            text: `❌ *𝙴𝚛𝚛𝚘𝚛:* ${error.message}`,
+            text: `❌ *Error:* ${error.message}`,
             contextInfo: getContextInfo({ sender: sender })
         }, { quoted: fkontak });
     }
@@ -113,26 +104,26 @@ cmd({
 cmd({
     on: 'body',
     fromMe: false
-}, async (conn, mek, m, { from, sender, body, prefix }) => {
+}, async (conn, mek, m, { from, sender, body }) => {
     try {
+        const prefix = body.charAt(0);
         if (!body.startsWith(prefix + 'song_')) return;
         
         const parts = body.split('_');
         if (parts.length < 3) return;
         
-        const format = parts[1]; // mp3 or mp4 or mp3doc or mp4doc
+        const format = parts[1]; // mp3, mp4, mp3doc, mp4doc
         const videoId = parts[2];
         
-        await conn.sendMessage(from, {
-            text: `*╭━━━〔 🐢 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙸𝙽𝙶 〕━━━┈⊷*\n*┃🐢│*\n*┃🐢│ 📥 𝙵𝚘𝚛𝚖𝚊𝚝: ${format.toUpperCase()}*\n*┃🐢│ ⏳ 𝙿𝚕𝚎𝚊𝚜𝚎 𝚠𝚊𝚒𝚝...*\n*┃🐢│*\n*╰━━━━━━━━━━━━━━━┈⊷*`,
-            contextInfo: getContextInfo({ sender: sender })
-        }, { quoted: fkontak });
-
-        // Determine if audio or video
+        // Determine type
         const isAudio = format.includes('mp3');
         const isDoc = format.includes('doc');
         
-        // Use your API
+        await conn.sendMessage(from, {
+            text: `⏳ *Downloading ${format.toUpperCase()}...*\nPlease wait...`,
+            contextInfo: getContextInfo({ sender: sender })
+        }, { quoted: fkontak });
+
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
         const apiUrl = `https://yt-dl.officialhectormanuel.workers.dev/?url=${encodeURIComponent(videoUrl)}`;
         
@@ -163,7 +154,11 @@ cmd({
         
         if (fileSize > 50) throw new Error('File too large (>50MB)');
         
-        const caption = `*╭━━━〔 🐢 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝙳 〕━━━┈⊷*\n*┃🐢│*\n*┃🐢│ 🎵 𝚃𝚒𝚝𝚕𝚎: ${title.substring(0, 30)}...*\n*┃🐢│ 📦 𝙵𝚘𝚛𝚖𝚊𝚝: ${format.toUpperCase()}*\n*┃🐢│ 📊 𝚂𝚒𝚣𝚎: ${fileSize.toFixed(2)} MB*\n*┃🐢│*\n*╰━━━━━━━━━━━━━━━┈⊷*\n\n> ${config.BOT_FOOTER}`;
+        // Get thumbnail
+        const thumbUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        
+        // Create caption
+        const caption = `🎵 *${title}*\n📦 Format: ${format.toUpperCase()}\n📊 Size: ${fileSize.toFixed(2)} MB\n\n> ${config.BOT_FOOTER}`;
         
         if (isDoc) {
             // Send as document
@@ -177,6 +172,7 @@ cmd({
         } else {
             // Send as media
             if (isAudio) {
+                // Send audio with thumbnail
                 await conn.sendMessage(from, {
                     audio: fileBuffer,
                     mimetype: 'audio/mpeg',
@@ -184,6 +180,7 @@ cmd({
                     contextInfo: getContextInfo({ sender: sender })
                 }, { quoted: fkontak });
             } else {
+                // Send video with thumbnail in caption
                 await conn.sendMessage(from, {
                     video: fileBuffer,
                     caption: caption,
@@ -199,7 +196,7 @@ cmd({
     } catch (error) {
         console.error('Download error:', error);
         await conn.sendMessage(from, {
-            text: `❌ *𝙳𝚘𝚠𝚗𝚕𝚘𝚊𝚍 𝙵𝚊𝚒𝚕𝚎𝚍:* ${error.message}`,
+            text: `❌ *Download Failed:* ${error.message}`,
             contextInfo: getContextInfo({ sender: sender })
         }, { quoted: fkontak });
     }
