@@ -105,7 +105,7 @@ const db = require('../lib/database');
 // ============================================
 // 📌 LOAD ALL COMMANDS FROM SILATECH FOLDER
 // ============================================
-const silatechDir = path.join(__dirname, 'silatech');
+const silatechDir = path.join(__dirname, '../silatech');
 if (!fs.existsSync(silatechDir)) {
     fs.mkdirSync(silatechDir, { recursive: true });
 }
