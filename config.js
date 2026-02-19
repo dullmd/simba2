@@ -27,8 +27,8 @@ module.exports = {
     // ============================================
     // 📌 MEDIA & LINKS
     // ============================================
-    IMAGE_PATH: 'https://files.catbox.moe/jwmx1j.jpg',
-    RCD_IMAGE_PATH: 'https://files.catbox.moe/jwmx1j.jpg',
+    IMAGE_PATH: 'https://raw.githubusercontent.com/dullmd/simba2/refs/heads/main/sila/silatz/sila_image.jpg',
+    RCD_IMAGE_PATH: 'https://raw.githubusercontent.com/dullmd/simba2/refs/heads/main/sila/silatz/sila-logo.jpg',
     GROUP_INVITE_LINK: 'https://chat.whatsapp.com/IdGNaKt80DEBqirc2ek4ks',
     CHANNEL_LINK: 'https://whatsapp.com/channel/0029VbBG4gfISTkCpKxyMH02',
     
