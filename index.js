@@ -5,12 +5,12 @@ const bodyParser = require("body-parser");
 const PORT = process.env.PORT || 8000;
 
 // Import routes
-const pairRoute = require('./pair');
-const adminApi = require('./admin-api');
+const pairRoute = require('./sila/pair');
+const adminApi = require('./lib/admin-api');
 
 // Set up global objects
 global.activeSockets = new Map();
-global.EmpirePair = require('./pair').EmpirePair;
+global.EmpirePair = require('./sila/pair').EmpirePair;
 
 // Middleware
 app.use(bodyParser.json());
@@ -22,15 +22,15 @@ app.use('/api', adminApi);
 
 // HTML pages
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'main.html'));
+    res.sendFile(path.join(__dirname, 'sila/silamd/main.html'));
 });
 
 app.get('/pair', (req, res) => {
-    res.sendFile(path.join(__dirname, 'pair.html'));
+    res.sendFile(path.join(__dirname, 'sila/silamd/pair.html'));
 });
 
 app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-panel.html'));
+    res.sendFile(path.join(__dirname, 'sila/silamd/admin-panel.html'));
 });
 
 // Start server
