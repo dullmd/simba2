@@ -5,26 +5,29 @@ const config = require('../config');
 const { fkontak, getContextInfo } = require('../lib/functions');
 
 cmd({
-    pattern: "song3",
-    alias: ["mp33", "music", "song3"],
+    pattern: "song",
+    alias: ["mp3", "music", "play"],
     desc: "Download song as MP3 from YouTube",
     category: "download",
     react: "🎵",
     filename: __filename
-}, async (conn, mek, m, { from, sender, args, q, prefix, reply, l, isOwner }) => {
+}, async (conn, mek, m, { from, sender, args, q, prefix, reply, l, isOwner, body, command }) => {
     try {
-        if (!q) {
+        // Get the query properly
+        const query = args.join(' ').trim();
+        
+        if (!query) {
             return await conn.sendMessage(from, {
                 text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                       `*│*\n` +
-                       `*│ 🐢 How To Use Song Downloader*\n` +
-                       `*│*\n` +
-                       `*│ ✦ ${prefix}song2 <song name>*\n` +
-                       `*│   Example: ${prefix}song2 shape of you*\n` +
-                       `*│*\n` +
-                       `*│ ✦ ${prefix}song2 <YouTube URL>*\n` +
-                       `*│   Example: ${prefix}song2 https://youtu.be/...*\n` +
-                       `*│*\n` +
+                       `│\n` +
+                       `│ 🐢 How To Use Song Downloader\n` +
+                       `│\n` +
+                       `│ ✦ ${prefix}${command} <song name>\n` +
+                       `│   Example: ${prefix}${command} shape of you\n` +
+                       `│\n` +
+                       `│ ✦ ${prefix}${command} <YouTube URL>\n` +
+                       `│   Example: ${prefix}${command} https://youtu.be/...\n` +
+                       `│\n` +
                        `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                        `> ${config.BOT_FOOTER}`,
                 contextInfo: getContextInfo({ sender: sender })
@@ -36,13 +39,22 @@ cmd({
             react: { text: "🔍", key: mek.key }
         });
 
+        // Send searching status
+        await conn.sendMessage(from, {
+            text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
+                   `│\n` +
+                   `│ 🔍 𝚂𝚎𝚊𝚛𝚌𝚑𝚒𝚗𝚐 𝚏𝚘𝚛: *${query}*\n` +
+                   `│\n` +
+                   `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
+                   `> ${config.BOT_FOOTER}`,
+            contextInfo: getContextInfo({ sender: sender })
+        }, { quoted: fkontak });
+
         let videoData = null;
-        let isDirectUrl = false;
 
         // Check if it's a direct YouTube URL
-        if (q.includes('youtube.com') || q.includes('youtu.be')) {
-            isDirectUrl = true;
-            const videoId = q.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
+        if (query.includes('youtube.com') || query.includes('youtu.be')) {
+            const videoId = query.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
             
             if (!videoId) {
                 await conn.sendMessage(from, {
@@ -50,9 +62,9 @@ cmd({
                 });
                 return await conn.sendMessage(from, {
                     text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                           `*│*\n` +
-                           `*│ ❌ 𝙸𝚗𝚟𝚊𝚕𝚒𝚍 𝚈𝚘𝚞𝚃𝚞𝚋𝚎 𝚕𝚒𝚗𝚔!*\n` +
-                           `*│*\n` +
+                           `│\n` +
+                           `│ ❌ 𝙸𝚗𝚟𝚊𝚕𝚒𝚍 𝚈𝚘𝚞𝚃𝚞𝚋𝚎 𝚕𝚒𝚗𝚔!\n` +
+                           `│\n` +
                            `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                            `> ${config.BOT_FOOTER}`,
                     contextInfo: getContextInfo({ sender: sender })
@@ -63,33 +75,24 @@ cmd({
             if (search) videoData = search;
         } else {
             // Search for the song
-            await conn.sendMessage(from, {
-                text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                       `*│*\n` +
-                       `*│ 🔍 𝚂𝚎𝚊𝚛𝚌𝚑𝚒𝚗𝚐 𝚈𝚘𝚞𝚃𝚞𝚋𝚎 𝚏𝚘𝚛 "${q}"...*\n` +
-                       `*│*\n` +
-                       `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
-                       `> ${config.BOT_FOOTER}`,
-                contextInfo: getContextInfo({ sender: sender })
-            }, { quoted: fkontak });
+            const search = await yts(query);
             
-            const search = await yts(q);
-            if (!search || !search.all || search.all.length === 0) {
+            if (!search || !search.videos || search.videos.length === 0) {
                 await conn.sendMessage(from, {
                     react: { text: "❌", key: mek.key }
                 });
                 return await conn.sendMessage(from, {
                     text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                           `*│*\n` +
-                           `*│ ❌ 𝙽𝚘 𝚛𝚎𝚜𝚞𝚕𝚝𝚜 𝚏𝚘𝚞𝚗𝚍 𝚏𝚘𝚛 "${q}"!*\n` +
-                           `*│*\n` +
+                           `│\n` +
+                           `│ ❌ 𝙽𝚘 𝚛𝚎𝚜𝚞𝚕𝚝𝚜 𝚏𝚘𝚞𝚗𝚍 𝚏𝚘𝚛: *${query}*\n` +
+                           `│\n` +
                            `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                            `> ${config.BOT_FOOTER}`,
                     contextInfo: getContextInfo({ sender: sender })
                 }, { quoted: fkontak });
             }
             
-            videoData = search.all[0];
+            videoData = search.videos[0];
         }
 
         if (!videoData) {
@@ -98,9 +101,9 @@ cmd({
             });
             return await conn.sendMessage(from, {
                 text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                       `*│*\n` +
-                       `*│ ❌ 𝙲𝚘𝚞𝚕𝚍 𝚗𝚘𝚝 𝚐𝚎𝚝 𝚟𝚒𝚍𝚎𝚘 𝚒𝚗𝚏𝚘𝚛𝚖𝚊𝚝𝚒𝚘𝚗!*\n` +
-                       `*│*\n` +
+                       `│\n` +
+                       `│ ❌ 𝙲𝚘𝚞𝚕𝚍 𝚗𝚘𝚝 𝚐𝚎𝚝 𝚟𝚒𝚍𝚎𝚘 𝚒𝚗𝚏𝚘𝚛𝚖𝚊𝚝𝚒𝚘𝚗!\n` +
+                       `│\n` +
                        `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                        `> ${config.BOT_FOOTER}`,
                 contextInfo: getContextInfo({ sender: sender })
@@ -109,19 +112,19 @@ cmd({
 
         const videoUrl = videoData.url;
         const title = videoData.title || 'Unknown Title';
-        const thumbnail = videoData.thumbnail || videoData.image;
+        const thumbnail = videoData.thumbnail || 'https://i.ytimg.com/vi/default.jpg';
         const duration = videoData.timestamp || videoData.duration || 'N/A';
         const views = videoData.views ? videoData.views.toLocaleString() : 'N/A';
 
         // Create caption with song info
         const caption = `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                       `*│ 🐢 Song Found!*\n` +
-                       `*│*\n` +
-                       `*│ 🎵 Title : ${title.substring(0, 40)}*\n` +
-                       `*│ ⏱️ Duration : ${duration}*\n` +
-                       `*│ 👁️ Views : ${views}*\n` +
-                       `*│ 🔗 Link : ${videoUrl}*\n` +
-                       `*│*\n` +
+                       `│ 🐢 *Song Found!*\n` +
+                       `│\n` +
+                       `│ 🎵 *Title:* ${title.substring(0, 40)}\n` +
+                       `│ ⏱️ *Duration:* ${duration}\n` +
+                       `│ 👁️ *Views:* ${views}\n` +
+                       `│ 🔗 *Link:* ${videoUrl}\n` +
+                       `│\n` +
                        `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                        `> ${config.BOT_FOOTER}`;
 
@@ -151,7 +154,7 @@ cmd({
         // Send image with buttons
         await conn.sendMessage(from, buttonMessage, { quoted: fkontak });
 
-        // Change reaction to indicate ready for download
+        // Change reaction to indicate success
         await conn.sendMessage(from, {
             react: { text: "✅", key: mek.key }
         });
@@ -160,9 +163,9 @@ cmd({
         console.error("Song command error:", error);
         await conn.sendMessage(from, {
             text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                   `*│*\n` +
-                   `*│ ⚠️ 𝙴𝚛𝚛𝚘𝚛: ${error.message.substring(0, 50)}*\n` +
-                   `*│*\n` +
+                   `│\n` +
+                   `│ ⚠️ *Error:* ${error.message.substring(0, 50)}\n` +
+                   `│\n` +
                    `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                    `> ${config.BOT_FOOTER}`,
             contextInfo: getContextInfo({ sender: sender })
@@ -208,18 +211,9 @@ cmd({
             }, { quoted: fkontak });
 
             await conn.sendMessage(from, {
-                text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                       `*│*\n` +
-                       `*│ ✅ 𝙰𝚞𝚍𝚒𝚘 𝙼𝙿𝟹 𝚜𝚎𝚗𝚝 𝚜𝚞𝚌𝚌𝚎𝚜𝚜𝚏𝚞𝚕𝚕𝚢!*\n` +
-                       `*│*\n` +
-                       `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
-                       `> ${config.BOT_FOOTER}`,
-                contextInfo: getContextInfo({ sender: sender })
-            }, { quoted: fkontak });
-
-            await conn.sendMessage(from, {
                 react: { text: "✅", key: mek.key }
             });
+
         } else {
             throw new Error('No audio URL found');
         }
@@ -228,9 +222,9 @@ cmd({
         console.error("Audio stream error:", error);
         await conn.sendMessage(from, {
             text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                   `*│*\n` +
-                   `*│ ❌ 𝙵𝚊𝚒𝚕𝚎𝚍 𝚝𝚘 𝚍𝚘𝚠𝚗𝚕𝚘𝚊𝚍 𝚊𝚞𝚍𝚒𝚘!*\n` +
-                   `*│*\n` +
+                   `│\n` +
+                   `│ ❌ *Failed to download audio!*\n` +
+                   `│\n` +
                    `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                    `> ${config.BOT_FOOTER}`,
             contextInfo: getContextInfo({ sender: sender })
@@ -276,18 +270,9 @@ cmd({
             }, { quoted: fkontak });
 
             await conn.sendMessage(from, {
-                text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                       `*│*\n` +
-                       `*│ ✅ 𝙰𝚞𝚍𝚒𝚘 𝙳𝚘𝚌𝚞𝚖𝚎𝚗𝚝 𝚜𝚎𝚗𝚝 𝚜𝚞𝚌𝚌𝚎𝚜𝚜𝚏𝚞𝚕𝚕𝚢!*\n` +
-                       `*│*\n` +
-                       `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
-                       `> ${config.BOT_FOOTER}`,
-                contextInfo: getContextInfo({ sender: sender })
-            }, { quoted: fkontak });
-
-            await conn.sendMessage(from, {
                 react: { text: "✅", key: mek.key }
             });
+
         } else {
             throw new Error('No audio URL found');
         }
@@ -296,9 +281,9 @@ cmd({
         console.error("Audio document error:", error);
         await conn.sendMessage(from, {
             text: `╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮\n` +
-                   `*│*\n` +
-                   `*│ ❌ 𝙵𝚊𝚒𝚕𝚎𝚍 𝚝𝚘 𝚍𝚘𝚠𝚗𝚕𝚘𝚊𝚍 𝚊𝚞𝚍𝚒𝚘 𝚍𝚘𝚌𝚞𝚖𝚎𝚗𝚝!*\n` +
-                   `*│*\n` +
+                   `│\n` +
+                   `│ ❌ *Failed to download audio document!*\n` +
+                   `│\n` +
                    `╰─❖〔 🐢 𝙰𝚕𝚠𝚊𝚢𝚜 𝚊𝚝 𝚢𝚘𝚞𝚛 𝚜𝚎𝚛𝚟𝚒𝚌𝚎 🐢 〕❖─╯\n\n` +
                    `> ${config.BOT_FOOTER}`,
             contextInfo: getContextInfo({ sender: sender })
