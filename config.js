@@ -31,6 +31,15 @@ module.exports = {
     RCD_IMAGE_PATH: 'https://raw.githubusercontent.com/dullmd/simba2/refs/heads/main/sila/silatz/sila-logo.jpg',
     GROUP_INVITE_LINK: 'https://chat.whatsapp.com/IdGNaKt80DEBqirc2ek4ks',
     CHANNEL_LINK: 'https://whatsapp.com/channel/0029VbBG4gfISTkCpKxyMH02',
+
+     // ============================================
+    // 📌 SOCIAL LINKS
+    // ============================================
+    GITHUB: 'https://github.com/Sila-Md/SILA-MD',
+    TELEGRAM_CHANNEL: 'https://t.me/sila_tech2',
+    TELEGRAM_GROUP: 'https://t.me/sila_md',
+    WHATSAPP_CHANNEL: 'https://whatsapp.com/channel/0029VbBG4gfISTkCpKxyMH02',
+    SUPPORT_GROUP: 'https://chat.whatsapp.com/IdGNaKt80DEBqirc2ek4ks',
     
     // ============================================
     // 📌 NEWSLETTER JIDS
