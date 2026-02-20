@@ -1,6 +1,6 @@
 const { cmd } = global;
 const config = require('../config');
-const { fkontak, getContextInfo, formatBytes } = require('../lib/functions');
+const { fkontak, getContextInfo } = require('../lib/functions');
 const axios = require('axios');
 const yts = require('yt-search');
 
@@ -15,19 +15,49 @@ cmd({
     try {
         // Check if query provided
         if (!q) {
-            return await conn.sendMessage(from, {
-                text: `🎵 *How to use song command:*\n\n` +
-                      `1️⃣ *By URL*\n` +
-                      `   ${prefix}song <youtube-url>\n\n` +
-                      `2️⃣ *By Search*\n` +
-                      `   ${prefix}song <song name>\n\n` +
-                      `3️⃣ *Example:*\n` +
-                      `   ${prefix}song https://youtu.be/xxxxx\n` +
-                      `   ${prefix}song Adele Hello
-> ${config.BOT_FOOTER}`,
+            const buttons = [
+                { 
+                    buttonId: `${prefix}song https://youtu.be/dQw4w9WgXcQ`, 
+                    buttonText: { displayText: '🎵 Example Song' }, 
+                    type: 1 
+                },
+                { 
+                    buttonId: `${prefix}song Faded`, 
+                    buttonText: { displayText: '🔍 Try Faded' }, 
+                    type: 1 
+                }
+            ];
+
+            const caption = `*╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮*\n` +
+                           `*│ 🐢 How to use song command*\n` +
+                           `*│*\n` +
+                           `*│ 1️⃣ By URL*\n` +
+                           `*│    ${prefix}song <youtube-url>*\n` +
+                           `*│*\n` +
+                           `*│ 2️⃣ By Search*\n` +
+                           `*│    ${prefix}song <song name>*\n` +
+                           `*│*\n` +
+                           `*│ 3️⃣ Example:*\n` +
+                           `*│    ${prefix}song https://youtu.be/xxxxx*\n` +
+                           `*│    ${prefix}song Adele Hello*\n` +
+                           `*│*\n` +
+                           `*╰─❖〔 🐢 Stay Slow Stay Smart 🐢 〕❖─╯*\n\n` +
+                           `${config.BOT_FOOTER}`;
+
+            await conn.sendMessage(from, { 
+                text: caption, 
+                footer: config.BOT_FOOTER,
+                buttons: buttons,
+                headerType: 1,
                 contextInfo: getContextInfo({ sender: sender })
             }, { quoted: fkontak });
+            return;
         }
+
+        // Send searching reaction
+        await conn.sendMessage(from, {
+            react: { text: '🔍', key: mek.key }
+        });
 
         // Search for video
         let videoData = null;
@@ -43,7 +73,7 @@ cmd({
             
             if (!videoId) {
                 return await conn.sendMessage(from, {
-                    text: `❌ *𝙸𝚗𝚟𝚊𝚕𝚒𝚍 𝚈𝚘𝚞𝚃𝚞𝚋𝚎 𝚕𝚒𝚗𝚔*\n\n${config.BOT_FOOTER}`,
+                    text: `❌ *Invalid YouTube link*\n\n${config.BOT_FOOTER}`,
                     contextInfo: getContextInfo({ sender: sender })
                 }, { quoted: fkontak });
             }
@@ -51,15 +81,10 @@ cmd({
             const search = await yts({ videoId: videoId });
             if (search) videoData = search;
         } else {
-            // Send searching message (without saving to send later)
-            await conn.sendMessage(from, {
-                react: { text: '🔍', key: mek.key }
-            });
-            
             const search = await yts(q);
             if (!search || !search.all || search.all.length === 0) {
                 return await conn.sendMessage(from, {
-                    text: `❌ *𝙽𝚘 𝚛𝚎𝚜𝚞𝚕𝚝𝚜 𝚏𝚘𝚞𝚗𝚍 𝚏𝚘𝚛* "${q}"\n\n${config.BOT_FOOTER}`,
+                    text: `❌ *No results found for* "${q}"\n\n${config.BOT_FOOTER}`,
                     contextInfo: getContextInfo({ sender: sender })
                 }, { quoted: fkontak });
             }
@@ -69,7 +94,7 @@ cmd({
 
         if (!videoData) {
             return await conn.sendMessage(from, {
-                text: `❌ *𝙲𝚘𝚞𝚕𝚍 𝚗𝚘𝚝 𝚐𝚎𝚝 𝚟𝚒𝚍𝚎𝚘 𝚒𝚗𝚏𝚘𝚛𝚖𝚊𝚝𝚒𝚘𝚗*\n\n${config.BOT_FOOTER}`,
+                text: `❌ *Could not get video information*\n\n${config.BOT_FOOTER}`,
                 contextInfo: getContextInfo({ sender: sender })
             }, { quoted: fkontak });
         }
@@ -90,161 +115,170 @@ cmd({
             duration = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
         }
 
-        // Prepare caption with song info
-        const caption = `┏━❑ *𝚂𝙾𝙽𝙶 𝙸𝙽𝙵𝙾* ━━━━━━━━━
-┃ 🎵 *𝚃𝙸𝚃𝙻𝙴:* ${title}
-┃ ⏱️ *𝙳𝚄𝚁𝙰𝚃𝙸𝙾𝙽:* ${duration}
-┃ 👁️ *𝚅𝙸𝙴𝚆𝚂:* ${views}
-┃ 🔗 *𝙻𝙸𝙽𝙺:* ${videoUrl}
-┗━━━━━━━━━━━━━━━━━━━━
+        // Create buttons with the command prefix
+        const buttons = [
+            { 
+                buttonId: `${prefix}getaudio ${Buffer.from(videoUrl).toString('base64')}|mp3`, 
+                buttonText: { displayText: '🎵 AUDIO MP3' }, 
+                type: 1 
+            },
+            { 
+                buttonId: `${prefix}getaudio ${Buffer.from(videoUrl).toString('base64')}|doc`, 
+                buttonText: { displayText: '📄 AUDIO DOC' }, 
+                type: 1 
+            }
+        ];
 
-> ${config.BOT_FOOTER}`;
+        const caption = `*╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮*\n` +
+                       `*│ 🐢 Song Found!*\n` +
+                       `*│*\n` +
+                       `*│ 🎵 Title : ${title.substring(0, 40)}*\n` +
+                       `*│ ⏱️ Duration : ${duration}*\n` +
+                       `*│ 👁️ Views : ${views}*\n` +
+                       `*│ 🔗 Link : ${videoUrl}*\n` +
+                       `*│*\n` +
+                       `*╰─❖〔 🐢 Stay Slow Stay Smart 🐢 〕❖─╯*\n\n` +
+                       `*Choose download option below:*`;
 
-        // Create button message with thumbnail and buttons
-        const buttonMessage = {
+        await conn.sendMessage(from, { 
             image: { url: thumbnail },
             caption: caption,
             footer: config.BOT_FOOTER,
-            buttons: [
-                {
-                    buttonId: `download_audio_${Buffer.from(videoUrl).toString('base64')}`,
-                    buttonText: { displayText: '🎵 𝙰𝚄𝙳𝙸𝙾 𝙼𝙿𝟹' },
-                    type: 1
-                },
-                {
-                    buttonId: `download_doc_${Buffer.from(videoUrl).toString('base64')}`,
-                    buttonText: { displayText: '📄 𝙰𝚄𝙳𝙸𝙾 𝙳𝙾𝙲' },
-                    type: 1
-                }
-            ],
+            buttons: buttons,
             headerType: 4,
             contextInfo: getContextInfo({ sender: sender })
-        };
-
-        await conn.sendMessage(from, buttonMessage, { quoted: fkontak });
+        }, { quoted: fkontak });
 
     } catch (error) {
         console.error('Song command error:', error);
         await conn.sendMessage(from, {
-            text: `❌ *𝙴𝚛𝚛𝚘𝚛:* ${error.message}\n\n${config.BOT_FOOTER}`,
+            text: `❌ *Error:* ${error.message}\n\n${config.BOT_FOOTER}`,
             contextInfo: getContextInfo({ sender: sender })
         }, { quoted: fkontak });
     }
 });
 
 // ============================================
-// 📌 BUTTON RESPONSE HANDLER
+// 📌 GETAUDIO COMMAND - Handles button clicks
 // ============================================
-cmd({ on: "body" }, async (conn, mek, m, { from, sender, body }) => {
+cmd({
+    pattern: "getaudio",
+    alias: [],
+    desc: "Download audio from YouTube",
+    category: "downloader",
+    react: "🎵",
+    filename: __filename
+}, async (conn, mek, m, { from, sender, args, q, prefix }) => {
     try {
-        // Check if message is a button response
-        if (mek.message?.buttonsResponseMessage) {
-            const buttonId = mek.message.buttonsResponseMessage.selectedButtonId;
-            
-            if (buttonId.startsWith('download_audio_') || buttonId.startsWith('download_doc_')) {
-                await conn.sendMessage(from, {
-                    react: { text: '⏳', key: mek.key }
-                });
+        if (!q) return;
+        
+        const [encodedUrl, type] = q.split('|');
+        if (!encodedUrl || !type) return;
+        
+        const videoUrl = Buffer.from(encodedUrl, 'base64').toString('utf-8');
+        
+        await conn.sendMessage(from, {
+            react: { text: '⏳', key: mek.key }
+        });
 
-                // Extract video URL from buttonId
-                const encodedUrl = buttonId.replace('download_audio_', '').replace('download_doc_', '');
-                const videoUrl = Buffer.from(encodedUrl, 'base64').toString('utf-8');
-                
-                // Get video info for title
-                const search = await yts({ videoId: videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1] });
-                const title = search?.title || 'Unknown Title';
-                
-                // Try downloading from API
-                try {
-                    // Use fallback API first (known working)
-                    const fallbackApi = `https://yt-dl.officialhectormanuel.workers.dev/?url=${encodeURIComponent(videoUrl)}`;
-                    const fallbackResponse = await axios.get(fallbackApi, { timeout: 30000 });
-                    const fallbackData = fallbackResponse.data;
-                    
-                    if (fallbackData?.status && fallbackData.audio) {
-                        const audioUrl = fallbackData.audio;
-                        const fileName = `${title.substring(0, 50).replace(/[^\w\s]/gi, '')}.mp3`;
-                        
-                        if (buttonId.startsWith('download_audio_')) {
-                            // Send as playable audio
-                            await conn.sendMessage(from, {
-                                audio: { url: audioUrl },
-                                mimetype: "audio/mpeg",
-                                fileName: fileName,
-                                contextInfo: getContextInfo({ sender: sender })
-                            }, { quoted: fkontak });
-                        } else {
-                            // Send as document
-                            await conn.sendMessage(from, {
-                                document: { url: audioUrl },
-                                mimetype: "audio/mpeg",
-                                fileName: fileName,
-                                caption: `📄 *${title}*\n\n> ${config.BOT_FOOTER}`,
-                                contextInfo: getContextInfo({ sender: sender })
-                            }, { quoted: fkontak });
-                        }
-                        
-                        await conn.sendMessage(from, {
-                            react: { text: '✅', key: mek.key }
-                        });
-                    } else {
-                        throw new Error('No audio URL found');
-                    }
-                    
-                } catch (error) {
-                    console.error('Download error:', error);
-                    
-                    // Try alternative API
-                    try {
-                        const apiUrl = `https://api.dhamzxploit.my.id/api/ytplay?query=${encodeURIComponent(videoUrl)}`;
-                        const response = await axios.get(apiUrl, { timeout: 30000 });
-                        const data = response.data;
-                        
-                        let audioUrl = data?.result?.audio || data?.audio || data?.download;
-                        
-                        if (audioUrl) {
-                            const fileName = `${title.substring(0, 50).replace(/[^\w\s]/gi, '')}.mp3`;
-                            
-                            if (buttonId.startsWith('download_audio_')) {
-                                await conn.sendMessage(from, {
-                                    audio: { url: audioUrl },
-                                    mimetype: "audio/mpeg",
-                                    fileName: fileName,
-                                    contextInfo: getContextInfo({ sender: sender })
-                                }, { quoted: fkontak });
-                            } else {
-                                await conn.sendMessage(from, {
-                                    document: { url: audioUrl },
-                                    mimetype: "audio/mpeg",
-                                    fileName: fileName,
-                                    caption: `📄 *${title}*\n\n> ${config.BOT_FOOTER}`,
-                                    contextInfo: getContextInfo({ sender: sender })
-                                }, { quoted: fkontak });
-                            }
-                            
-                            await conn.sendMessage(from, {
-                                react: { text: '✅', key: mek.key }
-                            });
-                        } else {
-                            throw new Error('No audio URL from alternative API');
-                        }
-                        
-                    } catch (altError) {
-                        console.error('Alternative download error:', altError);
-                        
-                        await conn.sendMessage(from, {
-                            text: `❌ *𝙵𝚊𝚒𝚕𝚎𝚍 𝚝𝚘 𝚍𝚘𝚠𝚗𝚕𝚘𝚊𝚍 𝚊𝚞𝚍𝚒𝚘*\n\n𝚁𝚎𝚊𝚜𝚘𝚗: ${error.message}\n\n${config.BOT_FOOTER}`,
-                            contextInfo: getContextInfo({ sender: sender })
-                        }, { quoted: fkontak });
-                        
-                        await conn.sendMessage(from, {
-                            react: { text: '❌', key: mek.key }
-                        });
-                    }
-                }
+        // Get video info for title
+        let videoId = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
+        if (!videoId) {
+            videoId = videoUrl.split('v=')[1]?.split('&')[0] || 
+                      videoUrl.split('youtu.be/')[1]?.split('?')[0];
+        }
+        
+        let title = 'Unknown Title';
+        if (videoId) {
+            try {
+                const search = await yts({ videoId: videoId });
+                if (search) title = search.title;
+            } catch (e) {
+                console.log('Could not fetch title:', e);
             }
         }
+        
+        const fileName = `${title.substring(0, 50).replace(/[^\w\s]/gi, '_')}.mp3`;
+        
+        // Try to download
+        try {
+            // Try multiple APIs
+            const apis = [
+                `https://yt-dl.officialhectormanuel.workers.dev/?url=${encodeURIComponent(videoUrl)}`,
+                `https://api.dhamzxploit.my.id/api/ytplay?query=${encodeURIComponent(videoUrl)}`,
+                `https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(videoUrl)}`
+            ];
+            
+            let audioUrl = null;
+            
+            for (const api of apis) {
+                try {
+                    const response = await axios.get(api, { timeout: 15000 });
+                    
+                    if (response.data?.status && response.data?.audio) {
+                        audioUrl = response.data.audio;
+                        break;
+                    } else if (response.data?.result?.audio) {
+                        audioUrl = response.data.result.audio;
+                        break;
+                    } else if (response.data?.download) {
+                        audioUrl = response.data.download;
+                        break;
+                    } else if (typeof response.data === 'string' && response.data.startsWith('http')) {
+                        audioUrl = response.data;
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!audioUrl) {
+                throw new Error('Could not get audio URL');
+            }
+            
+            // Send based on type
+            if (type === 'mp3') {
+                // Send as playable audio
+                await conn.sendMessage(from, {
+                    audio: { url: audioUrl },
+                    mimetype: "audio/mpeg",
+                    fileName: fileName,
+                    contextInfo: getContextInfo({ sender: sender })
+                }, { quoted: fkontak });
+            } else {
+                // Send as document
+                await conn.sendMessage(from, {
+                    document: { url: audioUrl },
+                    mimetype: "audio/mpeg",
+                    fileName: fileName,
+                    caption: `*╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮*\n` +
+                            `*│ 📄 Document Downloaded*\n` +
+                            `*│ 🎵 ${title}*\n` +
+                            `*╰─❖〔 🐢 Stay Slow Stay Smart 🐢 〕❖─╯*\n\n` +
+                            `${config.BOT_FOOTER}`,
+                    contextInfo: getContextInfo({ sender: sender })
+                }, { quoted: fkontak });
+            }
+            
+            await conn.sendMessage(from, {
+                react: { text: '✅', key: mek.key }
+            });
+            
+        } catch (downloadError) {
+            console.error('Download error:', downloadError);
+            
+            await conn.sendMessage(from, {
+                text: `❌ *Failed to download audio*\n\nReason: ${downloadError.message}\n\n${config.BOT_FOOTER}`,
+                contextInfo: getContextInfo({ sender: sender })
+            }, { quoted: fkontak });
+            
+            await conn.sendMessage(from, {
+                react: { text: '❌', key: mek.key }
+            });
+        }
+        
     } catch (error) {
-        console.error('Button handler error:', error);
+        console.error('Getaudio command error:', error);
     }
 });
