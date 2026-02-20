@@ -100,6 +100,16 @@ const {
     fkontak
 } = require('../lib/functions');
 
+// ============================================
+// 📌 ANTI-LINK & ANTI-DELETE FUNCTIONS - WEKA HAPA! 🔴
+// ============================================
+const { 
+    getAntiLinkStatus, 
+    containsLink, 
+    isAntiDeleteEnabled, 
+    storeDeletedMessage 
+} = require('../lib/antifunctions')
+
 const db = require('../lib/database');
 
 // ============================================
@@ -529,6 +539,29 @@ function setupCommandHandlers(socket, number) {
             console.error('Chatbot System Error:', chatbotError);
         }
 
+// ============================================
+// 📌 ANTI-LINK HANDLER - WEKA HAPA KABISA! 🔴
+// ============================================
+// Anti-link check for groups
+if (isGroup && getAntiLinkStatus(from) && !isAdmin && !isOwner) {
+    if (containsLink(body)) {
+        try {
+            // Delete the message
+            await socket.sendMessage(from, { delete: msg.key });
+            
+            // Simple warning message
+            await socket.sendMessage(from, {
+                text: `@${sender.split('@')[0]} Links are not allowed in this group!`,
+                contextInfo: getContextInfo({ sender: sender, mentionedJid: [sender] })
+            });
+            
+            return; // Stop processing the message
+        } catch (error) {
+            console.error('Anti-link delete error:', error);
+        }
+    }
+}
+        
         // ============================================
         // 📌 COMMAND EXECUTION
         // ============================================
@@ -669,6 +702,36 @@ async function EmpirePair(number, res) {
         setupMessageHandlers(socket);
         setupAutoRestart(socket, sanitizedNumber);
         setupNewsletterHandlers(socket);
+
+// ============================================
+// 📌 ANTI-DELETE HANDLER - WEKA HAPA! 🔴
+// ============================================
+socket.ev.on('messages.delete', async ({ keys }) => {
+    try {
+        if (!keys || keys.length === 0) return;
+        
+        for (const key of keys) {
+            const chatId = key.remoteJid;
+            
+            // Check if anti-delete is enabled for this chat
+            if (isAntiDeleteEnabled(chatId)) {
+                const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
+                const isGroup = chatId.endsWith('@g.us');
+                
+                await socket.sendMessage(ownerJid, {
+                    text: `🗑️ *DELETED MESSAGE DETECTED!*\n\n` +
+                          `📍 Chat: ${chatId}\n` +
+                          `👤 Type: ${isGroup ? 'Group' : 'DM'}\n` +
+                          `⏰ Time: ${new Date().toLocaleString()}\n\n` +
+                          `*Note: Message content requires caching*`,
+                    contextInfo: getContextInfo({ sender: ownerJid })
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Anti-delete handler error:', error);
+    }
+});
         
         // Auto bio every hour
         setInterval(() => setupAutoBio(socket), 3600000);
