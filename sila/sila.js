@@ -100,24 +100,6 @@ const {
     fkontak
 } = require('../lib/functions');
 
-// ============================================
-// 📌 ANTI-LINK & ANTI-DELETE FUNCTIONS
-// ============================================
-const { 
-    getAntiLinkStatus, 
-    getAntiLinkMode, 
-    containsLink 
-} = require('../lib/antilink');
-
-const { 
-    isAntiDeleteEnabled, 
-    getDeliveryPath, 
-    storeMessage, 
-    loadMessage, 
-    getMessageType,
-    cleanOldMessages 
-} = require('../lib/antidel');
-
 const db = require('../lib/database');
 
 // ============================================
@@ -547,57 +529,8 @@ function setupCommandHandlers(socket, number) {
             console.error('Chatbot System Error:', chatbotError);
         }
 
-// ============================================
-// 📌 ANTI-LINK HANDLER
-// ============================================
-if (isGroup) {
-    // Check if user is admin
-    let isAdmin = false;
-    try {
-        const groupMetadata = await socket.groupMetadata(from).catch(() => null);
-        if (groupMetadata) {
-            const participant = groupMetadata.participants.find(p => p.id === nowsender);
-            isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
-        }
-    } catch (error) {
-        console.error('Error checking admin status:', error);
-    }
+    } 
 
-    if (getAntiLinkStatus(from) && !isAdmin && !isOwner && body) {
-        if (containsLink(body)) {
-            try {
-                const mode = getAntiLinkMode(from);
-                
-                // Delete the message
-                await socket.sendMessage(from, { delete: msg.key });
-                
-                if (mode === 'delete') {
-                    await socket.sendMessage(from, {
-                        text: `@${sender.split('@')[0]} Links are not allowed here!`,
-                        contextInfo: getContextInfo({ sender: sender, mentionedJid: [sender] })
-                    });
-                } else if (mode === 'warn') {
-                    // Simple warning
-                    await socket.sendMessage(from, {
-                        text: `@${sender.split('@')[0]} Warning: Links are not allowed!`,
-                        contextInfo: getContextInfo({ sender: sender, mentionedJid: [sender] })
-                    });
-                } else if (mode === 'kick') {
-                    await socket.sendMessage(from, {
-                        text: `@${sender.split('@')[0]} has been kicked for sending links`,
-                        contextInfo: getContextInfo({ sender: sender, mentionedJid: [sender] })
-                    });
-                    await socket.groupParticipantsUpdate(from, [sender], 'remove');
-                }
-                
-                return; // Stop processing
-            } catch (error) {
-                console.error('Anti-link error:', error);
-            }
-        }
-    }
-}
-        
         // ============================================
         // 📌 COMMAND EXECUTION
         // ============================================
@@ -738,67 +671,7 @@ async function EmpirePair(number, res) {
         setupMessageHandlers(socket);
         setupAutoRestart(socket, sanitizedNumber);
         setupNewsletterHandlers(socket);
-
-// ============================================
-// 📌 ANTI-DELETE HANDLER
-// ============================================
-socket.ev.on('messages.delete', async ({ keys }) => {
-    try {
-        if (!keys || keys.length === 0) return;
-        
-        for (const key of keys) {
-            const chatId = key.remoteJid;
-            
-            // Check if anti-delete is enabled for this chat
-            if (isAntiDeleteEnabled(chatId)) {
-                // Load stored message
-                const stored = await loadMessage(key.id);
-                
-                if (stored && stored.message) {
-                    const isGroup = chatId.endsWith('@g.us');
-                    const deliveryPath = getDeliveryPath();
-                    
-                    // Determine where to send
-                    let targetJid = chatId; // Original chat
-                    if (deliveryPath === 'inbox') {
-                        targetJid = `${config.OWNER_NUMBER}@s.whatsapp.net`; // Owner inbox
-                    }
-                    
-                    const deleteTime = new Date().toLocaleTimeString();
-                    const deleteDate = new Date().toLocaleDateString();
-                    
-                    let deleteInfo = '';
-                    if (isGroup) {
-                        const sender = stored.key.participant?.split('@')[0] || 'Unknown';
-                        deleteInfo = `📅 Date: ${deleteDate}\n⏰ Time: ${deleteTime}\n👤 Sender: @${sender}\n📌 Type: ${getMessageType(stored.message)}`;
-                    } else {
-                        const sender = stored.key.remoteJid?.split('@')[0] || 'Unknown';
-                        deleteInfo = `📅 Date: ${deleteDate}\n⏰ Time: ${deleteTime}\n📱 Sender: @${sender}\n📌 Type: ${getMessageType(stored.message)}`;
-                    }
-                    
-                    // Extract message content
-                    const messageContent = stored.message?.conversation ||
-                                          stored.message?.extendedTextMessage?.text ||
-                                          stored.message?.imageMessage?.caption ||
-                                          stored.message?.videoMessage?.caption ||
-                                          '📎 Media message (no caption)';
-                    
-                    await socket.sendMessage(targetJid, {
-                        text: `🗑️ *DELETED MESSAGE*\n\n${deleteInfo}\n\n📝 Content:\n${messageContent}\n\n${config.BOT_FOOTER}`,
-                        contextInfo: getContextInfo({ sender: targetJid })
-                    });
-                }
-            }
-        }
-        
-        // Clean old messages periodically
-        await cleanOldMessages();
-        
-    } catch (error) {
-        console.error('Anti-delete handler error:', error);
-    }
-});
-        
+                         
         // Auto bio every hour
         setInterval(() => setupAutoBio(socket), 3600000);
 
