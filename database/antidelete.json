@@ -1,8 +1,8 @@
 {
   "global": {
-    "dm": true,
+    "dm": false,
     "group": false,
     "all": false
   },
-  "chats": {}
+  "path": "inbox"
 }
