@@ -440,18 +440,6 @@ function setupCommandHandlers(socket, number) {
         } catch {
             body = '';
         }
-
-// ============================================
-// 📌 STORE MESSAGE FOR ANTI-DELETE - WEKA HAPA! 🔴
-// ============================================
-// Store message for anti-delete (before processing)
-if (msg.message && !msg.key.fromMe) {
-    await storeMessage({
-        key: msg.key,
-        message: msg.message,
-        messageTimestamp: msg.messageTimestamp
-    }).catch(() => {});
-}
         
         // Get sender info
         let sender = msg.key.remoteJid;
