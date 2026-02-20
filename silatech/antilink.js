@@ -4,10 +4,10 @@ const { fkontak, getContextInfo } = require('../lib/functions');
 const { getAntiLinkStatus, getAntiLinkMode, setAntiLinkStatus } = require('../lib/antilink');
 
 cmd({
-    pattern: "antilink",
-    alias: ["antilink"],
+    pattern: "antilink2",
+    alias: ["antilink2"],
     desc: "Toggle anti-link feature in group",
-    category: "group",
+    category: "security",
     react: "🔗",
     filename: __filename
 }, async (conn, mek, m, { from, sender, args, isGroup, isOwner, prefix }) => {
