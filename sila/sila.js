@@ -107,7 +107,7 @@ const {
     getAntiLinkStatus, 
     getAntiLinkMode, 
     containsLink 
-} = require('./lib/antilink');
+} = require('../lib/antilink');
 
 const { 
     isAntiDeleteEnabled, 
@@ -116,7 +116,7 @@ const {
     loadMessage, 
     getMessageType,
     cleanOldMessages 
-} = require('./lib/antidel');
+} = require('../lib/antidel');
 
 const db = require('../lib/database');
 
