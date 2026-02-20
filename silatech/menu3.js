@@ -1,13 +1,26 @@
 const { cmd } = global;
 const config = require('../config');
-const { fkontak, getContextInfo, getTimestamp } = require('../lib/functions');
 const fs = require('fs-extra');
 const path = require('path');
 const moment = require("moment-timezone");
+const os = require('os');
 
 // Image ya menu
-const menuImage = "https://files.catbox.moe/36vahk.png";
+const menuImage = "https://raw.githubusercontent.com/dullmd/simba2/refs/heads/main/sila/silatz/sila_image.jpg";
 const CHANNEL_LINK = "https://whatsapp.com/channel/0029VbBG4gfISTkCpKxyMH02";
+
+// FakeVCard (Imeachwa hapa kwa ajili ya quoting tu)
+const fkontak = {
+    "key": {
+        "participant": '0@s.whatsapp.net',
+        "remoteJid": '0@s.whatsapp.net',
+        "fromMe": false,
+        "id": "Halo"
+    },
+    "message": {
+        "conversation": "𝚂𝙸𝙻𝙰"
+    }
+};
 
 // ============================================
 // 📌 GET ALL COMMANDS FROM SILATECH FOLDER
@@ -20,7 +33,7 @@ const getCommands = () => {
         const commandList = [];
         files.forEach(file => {
             const name = file.replace('.js', '');
-            // Exclude menu files if needed
+            // Exclude menu files
             if (name !== 'menu' && name !== 'menu2' && name !== 'menu3') {
                 commandList.push(name);
             }
@@ -52,9 +65,15 @@ const getCommandsByCategory = () => {
             try {
                 const commandPath = path.join(commandsDir, file);
                 const commandContent = fs.readFileSync(commandPath, 'utf8');
-                const categoryMatch = commandContent.match(/category:\s*['"]([^'"]+)['"]/);
-                if (categoryMatch && categoryMatch[1]) {
-                    category = categoryMatch[1];
+                
+                // Try different patterns for category
+                const categoryMatch1 = commandContent.match(/category:\s*['"]([^'"]+)['"]/);
+                const categoryMatch2 = commandContent.match(/Categorie:\s*['"]([^'"]+)['"]/);
+                
+                if (categoryMatch1 && categoryMatch1[1]) {
+                    category = categoryMatch1[1];
+                } else if (categoryMatch2 && categoryMatch2[1]) {
+                    category = categoryMatch2[1];
                 }
             } catch (e) {
                 // Ignore errors
@@ -78,8 +97,8 @@ const getCommandsByCategory = () => {
 // ============================================
 cmd({
     pattern: "menu3",
-    alias: ["help3", "commands3"],
-    desc: "Show bot menu with buttons",
+    alias: ["help3", "commands3", "m"],
+    desc: "Show bot menu with all commands",
     category: "general",
     react: "📋",
     filename: __filename
@@ -88,7 +107,16 @@ cmd({
         // Get all commands
         const allCommands = getCommands();
         const categories = getCommandsByCategory();
-        const categoryNames = Object.keys(categories);
+        const totalCommands = allCommands.length;
+        
+        // Calculate uptime
+        const uptime = process.uptime();
+        const hours = Math.floor(uptime / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        const seconds = Math.floor(uptime % 60);
+        
+        // Get memory usage
+        const memory = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
 
         // Create buttons (tatu: Get Bot, Owner, na Channel)
         const commandButtons = [
@@ -110,52 +138,41 @@ cmd({
             }
         ];
 
-        // Generate commands list with nice formatting
-        let commandsText = '';
+        // Start building menu text with your design
+        let menuText = `*╭─❖〔 🐢 ${config.BOT_NAME} 🐢 〕❖─╮*\n`;
+        menuText += `*│ 🐢 User : @${sender.split('@')[0]}*\n`;
+        menuText += `*│ 🐢 Prefix : ${prefix || config.PREFIX || 'None'}*\n`;
+        menuText += `*│ 🐢 Runtime : ${hours}h ${minutes}m ${seconds}s*\n`;
+        menuText += `*│ 🐢 Memory : ${memory} MB*\n`;
+        menuText += `*│ 🐢 Commands : ${totalCommands}*\n`;
+        menuText += `*╰─❖〔 🐢 Stay Slow Stay Smart 🐢 〕❖─╯*\n\n`;
+
+        // Add commands by category
+        const categoryNames = Object.keys(categories).sort();
         
-        if (categoryNames.length > 1) {
-            // Show by categories
-            for (const category of categoryNames.sort()) {
-                commandsText += `┏━❑ *${category.toUpperCase()}* ━━━━━━━━━\n`;
-                categories[category].sort().forEach((cmd, index) => {
-                    commandsText += `┃ ${index + 1}. ${prefix}${cmd}\n`;
-                });
-                commandsText += `┗━━━━━━━━━━━━━━━━━━━━\n\n`;
-            }
-        } else {
-            // Simple list if no categories
-            commandsText += `┏━❑ *𝙰𝙻𝙻 𝙲𝙾𝙼𝙼𝙰𝙽𝙳𝚂* ━━━━━━━━━\n`;
-            allCommands.sort().forEach((cmd, index) => {
-                commandsText += `┃ ${index + 1}. ${prefix}${cmd}\n`;
+        for (const category of categoryNames) {
+            menuText += `*╭─❖〔 🐢 ${category.toUpperCase()} 〕❖─╮*\n`;
+            
+            // Sort commands alphabetically
+            categories[category].sort().forEach((cmd, index) => {
+                menuText += `*│ 🐢 ${prefix}${cmd}*\n`;
             });
-            commandsText += `┗━━━━━━━━━━━━━━━━━━━━\n`;
+            
+            menuText += `*╰─❖──────────────❖─╯*\n\n`;
         }
+
+        // Add footer
+        menuText += `> ${config.BOT_FOOTER}`;
 
         const buttonMessage = {
             image: { url: menuImage },
-            caption: `┏━❑ *𝚂𝙸𝙻𝙰-𝙼𝙳 𝙼𝙴𝙽𝚄* ━━━━━━━━━
-┃ 🤖 *Bot Name:* ${config.BOT_NAME}
-┃ ⏰ *Time:* ${moment().tz("Africa/Nairobi").format("DD/MM/YYYY HH:mm")}
-┃ 📊 *Total Cmds:* ${allCommands.length}
-┃ 👤 *User:* @${sender.split('@')[0]}
-┗━━━━━━━━━━━━━━━━━━━━
-
-${commandsText}
-
-━━━━━━━━━━━━━━━━━━━━
-> ${config.BOT_FOOTER}`,
+            caption: menuText,
             footer: `${config.BOT_NAME} © 2026`,
             buttons: commandButtons,
             headerType: 4,
             contextInfo: {
-                mentionedJid: [sender],
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: config.NEWSLETTER_JIDS[0] || '120363402325089913@newsletter',
-                    newsletterName: `© ${config.BOT_NAME}`,
-                    serverMessageId: 143,
-                }
+                mentionedJid: [sender]
+                // Removed getContextInfo to keep it simple
             }
         };
 
@@ -169,12 +186,10 @@ ${commandsText}
 
     } catch (error) {
         console.error("Menu3 Command Error:", error);
+        // Simple error message without design
         await conn.sendMessage(from, {
-            text: `┏━❑ *𝙴𝚁𝚁𝙾𝚁* ━━━━━━━━━
-┃ ❌ ${error.message}
-┗━━━━━━━━━━━━━━━━━━━━
-> ${config.BOT_FOOTER}`,
-            contextInfo: getContextInfo({ sender: sender })
-        }, { quoted: fkontak });
+            text: `❌ Error: ${error.message}`,
+            quoted: fkontak
+        });
     }
 });
