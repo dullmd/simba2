@@ -1,7 +1,7 @@
 const { cmd } = global;
 const config = require('../config');
 const { fkontak, getContextInfo } = require('../lib/functions');
-const { getAntiLinkStatus, setAntiLinkStatus, containsLink } = require('../lib/antifunctions');
+const { getAntiLinkStatus, getAntiLinkMode, setAntiLinkStatus } = require('../lib/antilink');
 
 cmd({
     pattern: "antilink",
@@ -32,11 +32,11 @@ cmd({
             }, { quoted: fkontak });
         }
 
-        // Get current status
         const currentStatus = getAntiLinkStatus(from);
+        const currentMode = getAntiLinkMode(from);
         const action = args[0]?.toLowerCase();
 
-        // If no args, show buttons
+        // If no args, show status with buttons
         if (!action) {
             const buttons = [
                 { 
@@ -48,11 +48,27 @@ cmd({
                     buttonId: `${prefix}antilink off`, 
                     buttonText: { displayText: '❌ OFF' }, 
                     type: 1 
+                },
+                { 
+                    buttonId: `${prefix}antilink delete`, 
+                    buttonText: { displayText: '🗑️ DELETE' }, 
+                    type: 1 
+                },
+                { 
+                    buttonId: `${prefix}antilink warn`, 
+                    buttonText: { displayText: '⚠️ WARN' }, 
+                    type: 1 
+                },
+                { 
+                    buttonId: `${prefix}antilink kick`, 
+                    buttonText: { displayText: '👢 KICK' }, 
+                    type: 1 
                 }
             ];
 
             const caption = `🔗 *ANTI-LINK SETTINGS*\n\n` +
-                           `Current Status: ${currentStatus ? '✅ ON' : '❌ OFF'}\n\n` +
+                           `Status: ${currentStatus ? '✅ ON' : '❌ OFF'}\n` +
+                           `Mode: ${currentMode.toUpperCase()}\n\n` +
                            `Choose option below:\n\n` +
                            `${config.BOT_FOOTER}`;
 
@@ -66,9 +82,9 @@ cmd({
             return;
         }
 
-        // Handle on/off
-        let newStatus;
-        let statusText;
+        let newStatus = currentStatus;
+        let newMode = currentMode;
+        let statusText = '';
 
         if (action === 'on') {
             newStatus = true;
@@ -76,19 +92,24 @@ cmd({
         } else if (action === 'off') {
             newStatus = false;
             statusText = '𝙳𝙸𝚂𝙰𝙱𝙻𝙴𝙳 ❌';
+        } else if (action === 'delete' || action === 'warn' || action === 'kick') {
+            newStatus = true;
+            newMode = action;
+            statusText = `Mode set to ${action.toUpperCase()} ${action === 'delete' ? '🗑️' : action === 'warn' ? '⚠️' : '👢'}`;
         } else {
             return await conn.sendMessage(from, {
-                text: `❌ *Invalid option! Use on/off*\n\n${config.BOT_FOOTER}`,
+                text: `❌ *Invalid option! Use on/off/delete/warn/kick*\n\n${config.BOT_FOOTER}`,
                 contextInfo: getContextInfo({ sender: sender })
             }, { quoted: fkontak });
         }
 
-        // Save status
-        setAntiLinkStatus(from, newStatus);
+        // Save settings
+        setAntiLinkStatus(from, newStatus, newMode);
 
         await conn.sendMessage(from, {
             text: `🔗 *ANTI-LINK UPDATED*\n\n` +
-                  `Status: ${statusText}\n` +
+                  `Status: ${newStatus ? '✅ ON' : '❌ OFF'}\n` +
+                  `Mode: ${newMode.toUpperCase()}\n` +
                   `Group: ${groupMetadata.subject}\n` +
                   `By: @${sender.split('@')[0]}\n\n` +
                   `${config.BOT_FOOTER}`,
