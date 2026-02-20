@@ -1,0 +1,8 @@
+{
+  "global": {
+    "dm": true,
+    "group": false,
+    "all": false
+  },
+  "chats": {}
+}
