@@ -57,6 +57,55 @@ cmd({
 *│ 💕 .compliment @user*
 *│    Give a compliment*
 *│*
+*│ 🎲 .roll [sides]*
+*│    Roll a dice*
+*│*
+*│ 🪙 .flipcoin*
+*│    Flip a coin*
+*│*
+*│ 🎰 .lottery*
+*│    Try your luck*
+*│*
+*│ ⚔️ .fight @user*
+*│    Fight someone*
+*│*
+*│*
+*│ 👤 USER RATINGS*
+*│ 💻 .hack @user*
+*│    Hack someone*
+*│*
+*│ 👀 .stalk @user*
+*│    Stalk someone*
+*│*
+*│ 🧠 .iq @user*
+*│    Check IQ*
+*│*
+*│ 💅 .beauty @user*
+*│    Beauty rate*
+*│*
+*│ 🌈 .gayrate @user*
+*│    Gay meter*
+*│*
+*│ 💰 .richrate @user*
+*│    Rich meter*
+*│*
+*│*
+*│ 🎭 ACTIONS*
+*│ 😴 .sleep*
+*│    Go to sleep*
+*│*
+*│ 💃 .dance*
+*│    Show moves*
+*│*
+*│ 😢 .cry*
+*│    Express sadness*
+*│*
+*│ 😂 .laugh*
+*│    Have a laugh*
+*│*
+*│ 🖼️ .meme*
+*│    Random meme*
+*│*
 *│ 🔥 .roast @user*
 *│    Friendly roast*
 *│*
