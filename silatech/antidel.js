@@ -4,10 +4,10 @@ const { fkontak, getContextInfo } = require('../lib/functions');
 const { getAntiDeleteSettings, updateAntiDeleteSettings } = require('../lib/antidel');
 
 cmd({
-    pattern: "antidel",
-    alias: ["antidelete", "ad"],
+    pattern: "antidel2",
+    alias: ["antidelete2", "ad"],
     desc: "Toggle anti-delete feature (DM/Group/All)",
-    category: "owner",
+    category: "security",
     react: "🗑️",
     filename: __filename
 }, async (conn, mek, m, { from, sender, args, isOwner, prefix }) => {
