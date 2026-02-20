@@ -11,7 +11,7 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, sender, isGroup }) => {
     try {
-        const groupMenu = `╭─❖〔 🐢 GROUP MENU 🐢 〕❖─╮
+       const groupMenu = `╭─❖〔 🐢 GROUP MENU 🐢 〕❖─╮
 *│*
 *│ 👥 ADMIN COMMANDS*
 *│*
@@ -38,13 +38,33 @@ cmd({
 *│*
 *│ 🖼️ .setppgroup*
 *│    Set group profile picture*
-*│    (Reply to image)*
 *│*
 *│ 👋 .welcome on/off*
 *│    Toggle welcome message*
 *│*
 *│ 👋 .goodbye on/off*
 *│    Toggle goodbye message*
+*│*
+*│ 📝 .setwelcome <text>*
+*│    Set custom welcome text*
+*│*
+*│ 📝 .setgoodbye <text>*
+*│    Set custom goodbye text*
+*│*
+*│ 📜 .setrules <text>*
+*│    Set group rules*
+*│*
+*│ 📜 .rules*
+*│    View group rules*
+*│*
+*│ ⚠️ .warn @user*
+*│    Warn a member*
+*│*
+*│ 📋 .warnlist*
+*│    Show all warned members*
+*│*
+*│ ✅ .clearwarn @user*
+*│    Clear warnings for user*
 *│*
 *│ 🔗 .link*
 *│    Get group invite link*
@@ -55,13 +75,37 @@ cmd({
 *│ 🔊 .unmute*
 *│    Open group (all members)*
 *│*
+*│ 🐢 .slowmode on/off*
+*│    Toggle slow mode*
+*│*
+*│ 👑 .onlyadmin on/off*
+*│    Toggle admin-only mode*
+*│*
+*│ ✏️ .detectedit on/off*
+*│    Detect edited messages*
+*│*
+*│ 🧹 .autoremove <days>*
+*│    Auto-remove inactive members*
+*│*
+*│ 📊 .leveling on/off*
+*│    Toggle XP system*
+*│*
+*│ 📊 .rank / .level*
+*│    Check your level*
+*│*
+*│ 🔄 .resetxp @user*
+*│    Reset user XP*
+*│*
 *│ ➕ .add <number>*
 *│    Add member to group*
 *│*
 *│ 👢 .kick @user*
 *│    Remove member from group*
 *│*
-*│ 📋 .tagall*
+*│ 👢 .kickall*
+*│    Remove all non-admin members*
+*│*
+*│ 📋 .tagall <message>*
 *│    Mention all members*
 *│*
 *│ ℹ️ .groupinfo*
