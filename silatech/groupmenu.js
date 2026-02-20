@@ -102,7 +102,7 @@ ${groupMenu.split('\n').slice(1).join('\n')}`;
 // 📌 COMMAND: TAGALL
 // ============================================
 cmd({
-    pattern: "tagall",
+    pattern: "tagall2",
     alias: ["mentionall", "everyone"],
     desc: "Mention all group members",
     category: "group",
