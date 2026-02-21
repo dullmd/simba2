@@ -68,10 +68,39 @@ const settingsSchema = new mongoose.Schema({
 });
 
 // ============================================
+// 📌 ANTI-DELETE & ANTI-LINK SCHEMAS
+// ============================================
+const antiDeleteSchema = new mongoose.Schema({
+  groupJid: { type: String, required: true, unique: true },
+  enabled: { type: Boolean, default: false },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const antiLinkSchema = new mongoose.Schema({
+  groupJid: { type: String, required: true, unique: true },
+  enabled: { type: Boolean, default: false },
+  action: { type: String, default: 'delete' }, // 'delete', 'warn', 'kick'
+  allowedLinks: { type: [String], default: [] }, // Allowed links (e.g., 'chat.whatsapp.com')
+  warnCount: { type: Number, default: 3 }, // Warn count before kick
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const warnSchema = new mongoose.Schema({
+  groupJid: { type: String, required: true },
+  userJid: { type: String, required: true },
+  count: { type: Number, default: 0 },
+  reasons: { type: [String], default: [] },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// ============================================
 // 📌 MONGODB MODELS
 // ============================================
 const Session = mongoose.model('Session', sessionSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
+const AntiDelete = mongoose.model('AntiDelete', antiDeleteSchema);
+const AntiLink = mongoose.model('AntiLink', antiLinkSchema);
+const Warn = mongoose.model('Warn', warnSchema);
 
 // ============================================
 // 📌 GLOBAL VARIABLES
@@ -81,6 +110,9 @@ const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './session';
 const NUMBER_LIST_PATH = './numbers.json';
 const otpStore = new Map();
+
+// Store deleted messages for anti-delete
+const deletedMessagesCache = new Map(); // key: messageId, value: { message, timestamp }
 
 // ============================================
 // 📌 LOAD FUNCTIONS & DATABASE
@@ -103,7 +135,320 @@ const {
 const db = require('../lib/database');
 
 // ============================================
-// 📌 LOAD ALL COMMANDS FROM SILATECH FOLDER
+// 📌 GROUP EVENTS HANDLER
+// ============================================
+const GroupEvents = async (conn, update) => {
+    try {
+        const { id, participants, action } = update;
+        
+        if (action === 'add') {
+            for (let participant of participants) {
+                // Welcome message
+                await conn.sendMessage(id, {
+                    text: `┏━❑ 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 ━━━━━━━━━━━\n┃ 👋 @${participant.split('@')[0]}\n┃ 🎉 Welcome to the group!\n┃ 📌 Please read the description\n┗━━━━━━━━━━━━━━━━━`,
+                    mentions: [participant]
+                });
+            }
+        } else if (action === 'remove') {
+            for (let participant of participants) {
+                // Goodbye message
+                await conn.sendMessage(id, {
+                    text: `┏━❑ 𝐆𝐎𝐎𝐃𝐁𝐘𝐄 ━━━━━━━━━━━\n┃ 👋 @${participant.split('@')[0]}\n┃ 🚶 Left the group\n┗━━━━━━━━━━━━━━━━━`,
+                    mentions: [participant]
+                });
+            }
+        } else if (action === 'promote') {
+            for (let participant of participants) {
+                await conn.sendMessage(id, {
+                    text: `┏━❑ 𝐀𝐃𝐌𝐈𝐍 ━━━━━━━━━━━━━\n┃ 👑 @${participant.split('@')[0]}\n┃ 📌 Promoted to admin\n┗━━━━━━━━━━━━━━━━━`,
+                    mentions: [participant]
+                });
+            }
+        } else if (action === 'demote') {
+            for (let participant of participants) {
+                await conn.sendMessage(id, {
+                    text: `┏━❑ 𝐀𝐃𝐌𝐈𝐍 ━━━━━━━━━━━━━\n┃ 👤 @${participant.split('@')[0]}\n┃ 📌 Demoted from admin\n┗━━━━━━━━━━━━━━━━━`,
+                    mentions: [participant]
+                });
+            }
+        }
+    } catch (error) {
+        console.error('GroupEvents Error:', error);
+    }
+};
+
+// ============================================
+// 📌 ANTI-DELETE FUNCTIONS
+// ============================================
+
+// Get anti-delete status for a group
+const getAntiDeleteStatus = async (groupJid) => {
+    try {
+        const setting = await AntiDelete.findOne({ groupJid });
+        return setting ? setting.enabled : false;
+    } catch (error) {
+        console.error('Error getting anti-delete status:', error);
+        return false;
+    }
+};
+
+// Set anti-delete status for a group
+const setAntiDelete = async (groupJid, enabled) => {
+    try {
+        await AntiDelete.findOneAndUpdate(
+            { groupJid },
+            { enabled, updatedAt: new Date() },
+            { upsert: true }
+        );
+        return true;
+    } catch (error) {
+        console.error('Error setting anti-delete:', error);
+        return false;
+    }
+};
+
+// Anti-Delete handler
+const AntiDelete = async (conn, updates) => {
+    try {
+        for (const update of updates) {
+            if (!update.update.message) continue;
+            
+            const { key } = update;
+            if (!key) continue;
+            
+            const groupJid = key.remoteJid;
+            if (!groupJid.endsWith('@g.us')) continue; // Only groups
+            
+            // Check if anti-delete is enabled for this group
+            const isEnabled = await getAntiDeleteStatus(groupJid);
+            if (!isEnabled) continue;
+            
+            // Store deleted message in cache
+            if (update.update.message === null) {
+                // Try to get original message from store or cache
+                const msgId = key.id;
+                const deletedMsg = deletedMessagesCache.get(msgId);
+                
+                if (deletedMsg) {
+                    const sender = key.participant || key.remoteJid;
+                    const messageContent = deletedMsg.message;
+                    
+                    let messageType = getContentType(messageContent);
+                    let caption = '';
+                    
+                    if (messageType === 'conversation') {
+                        caption = messageContent.conversation;
+                    } else if (messageType === 'extendedTextMessage') {
+                        caption = messageContent.extendedTextMessage.text;
+                    } else if (messageType === 'imageMessage') {
+                        caption = messageContent.imageMessage.caption || '[Image]';
+                    } else if (messageType === 'videoMessage') {
+                        caption = messageContent.videoMessage.caption || '[Video]';
+                    } else if (messageType === 'audioMessage') {
+                        caption = '[Audio]';
+                    } else if (messageType === 'stickerMessage') {
+                        caption = '[Sticker]';
+                    } else if (messageType === 'documentMessage') {
+                        caption = '[Document]';
+                    } else {
+                        caption = '[Unknown Message]';
+                    }
+                    
+                    // Send anti-delete notification
+                    await conn.sendMessage(groupJid, {
+                        text: `┏━❑ 𝐀𝐍𝐓𝐈-𝐃𝐄𝐋𝐄𝐓𝐄 ━━━━━━━━━\n┃ 🚨 Someone deleted a message!\n┃ 👤 User: @${sender.split('@')[0]}\n┃ 💬 Message: ${caption}\n┃ ⏰ Time: ${new Date().toLocaleString()}\n┗━━━━━━━━━━━━━━━━━`,
+                        mentions: [sender]
+                    }, { quoted: fkontak });
+                    
+                    // Remove from cache after 5 minutes
+                    setTimeout(() => {
+                        deletedMessagesCache.delete(msgId);
+                    }, 300000);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('AntiDelete Error:', error);
+    }
+};
+
+// ============================================
+// 📌 ANTI-LINK FUNCTIONS
+// ============================================
+
+// Common link patterns
+const LINK_PATTERNS = [
+    /chat\.whatsapp\.com\/(?:invite\/)?([a-zA-Z0-9_-]+)/gi,
+    /whatsapp\.com\/channel\/([a-zA-Z0-9_-]+)/gi,
+    /t\.me\/([a-zA-Z0-9_-]+)/gi,
+    /telegram\.me\/([a-zA-Z0-9_-]+)/gi,
+    /instagram\.com\/([a-zA-Z0-9_-]+)/gi,
+    /facebook\.com\/([a-zA-Z0-9_-]+)/gi,
+    /fb\.com\/([a-zA-Z0-9_-]+)/gi,
+    /twitter\.com\/([a-zA-Z0-9_-]+)/gi,
+    /x\.com\/([a-zA-Z0-9_-]+)/gi,
+    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/gi,
+    /youtu\.be\/([a-zA-Z0-9_-]+)/gi,
+    /tiktok\.com\/([a-zA-Z0-9_-]+)/gi,
+    /https?:\/\/[^\s]+/gi // Generic link
+];
+
+// Get anti-link status for a group
+const getAntiLinkStatus = async (groupJid) => {
+    try {
+        const setting = await AntiLink.findOne({ groupJid });
+        return setting ? setting.enabled : false;
+    } catch (error) {
+        console.error('Error getting anti-link status:', error);
+        return false;
+    }
+};
+
+// Get anti-link settings for a group
+const getAntiLinkSettings = async (groupJid) => {
+    try {
+        const setting = await AntiLink.findOne({ groupJid });
+        return setting || { enabled: false, action: 'delete', allowedLinks: [], warnCount: 3 };
+    } catch (error) {
+        console.error('Error getting anti-link settings:', error);
+        return { enabled: false, action: 'delete', allowedLinks: [], warnCount: 3 };
+    }
+};
+
+// Set anti-link status for a group
+const setAntiLink = async (groupJid, enabled, action = 'delete', allowedLinks = []) => {
+    try {
+        await AntiLink.findOneAndUpdate(
+            { groupJid },
+            { enabled, action, allowedLinks, updatedAt: new Date() },
+            { upsert: true }
+        );
+        return true;
+    } catch (error) {
+        console.error('Error setting anti-link:', error);
+        return false;
+    }
+};
+
+// Get warn count for a user in a group
+const getUserWarns = async (groupJid, userJid) => {
+    try {
+        const warn = await Warn.findOne({ groupJid, userJid });
+        return warn ? warn.count : 0;
+    } catch (error) {
+        console.error('Error getting user warns:', error);
+        return 0;
+    }
+};
+
+// Add warn for a user
+const addWarn = async (groupJid, userJid, reason = 'Sending link') => {
+    try {
+        const warn = await Warn.findOneAndUpdate(
+            { groupJid, userJid },
+            { 
+                $inc: { count: 1 },
+                $push: { reasons: reason },
+                updatedAt: new Date()
+            },
+            { upsert: true, new: true }
+        );
+        return warn.count;
+    } catch (error) {
+        console.error('Error adding warn:', error);
+        return 0;
+    }
+};
+
+// Reset warns for a user
+const resetWarns = async (groupJid, userJid) => {
+    try {
+        await Warn.deleteOne({ groupJid, userJid });
+        return true;
+    } catch (error) {
+        console.error('Error resetting warns:', error);
+        return false;
+    }
+};
+
+// Check if message contains links
+const containsLinks = (text, allowedLinks = []) => {
+    if (!text) return false;
+    
+    for (const pattern of LINK_PATTERNS) {
+        const matches = text.match(pattern);
+        if (matches) {
+            // Check if any matched link is allowed
+            for (const match of matches) {
+                let isAllowed = false;
+                for (const allowed of allowedLinks) {
+                    if (match.includes(allowed)) {
+                        isAllowed = true;
+                        break;
+                    }
+                }
+                if (!isAllowed) return true;
+            }
+        }
+    }
+    return false;
+};
+
+// Anti-Link handler
+const handleAntiLink = async (conn, msg, groupJid, sender, text) => {
+    try {
+        // Get anti-link settings
+        const settings = await getAntiLinkSettings(groupJid);
+        if (!settings.enabled) return false;
+        
+        // Check if sender is admin (you can add admin check here)
+        // For now, we'll assume non-admin
+        
+        // Check for links
+        if (containsLinks(text, settings.allowedLinks)) {
+            // Delete the message
+            await conn.sendMessage(groupJid, { delete: msg.key });
+            
+            // Take action based on settings
+            if (settings.action === 'warn' || settings.action === 'kick') {
+                const warnCount = await addWarn(groupJid, sender, 'Sending unauthorized link');
+                const maxWarns = settings.warnCount || 3;
+                
+                // Send warning message
+                await conn.sendMessage(groupJid, {
+                    text: `┏━❑ 𝐀𝐍𝐓𝐈-𝐋𝐈𝐍𝐊 ━━━━━━━━━\n┃ ⚠️ @${sender.split('@')[0]}\n┃ 🔗 Links are not allowed here!\n┃ 🚨 Warning: ${warnCount}/${maxWarns}\n┗━━━━━━━━━━━━━━━━━`,
+                    mentions: [sender]
+                });
+                
+                // Kick if max warns reached
+                if (settings.action === 'kick' && warnCount >= maxWarns) {
+                    await conn.groupParticipantsUpdate(groupJid, [sender], 'remove');
+                    await conn.sendMessage(groupJid, {
+                        text: `┏━❑ 𝐀𝐍𝐓𝐈-𝐋𝐈𝐍𝐊 ━━━━━━━━━\n┃ 👢 @${sender.split('@')[0]}\n┃ 🚫 Removed for sending links\n┗━━━━━━━━━━━━━━━━━`,
+                        mentions: [sender]
+                    });
+                    await resetWarns(groupJid, sender);
+                }
+            } else {
+                // Just delete and notify
+                await conn.sendMessage(groupJid, {
+                    text: `┏━❑ 𝐀𝐍𝐓𝐈-𝐋𝐈𝐍𝐊 ━━━━━━━━━\n┃ ⚠️ @${sender.split('@')[0]}\n┃ 🔗 Links are not allowed here!\n┃ 🗑️ Message deleted\n┗━━━━━━━━━━━━━━━━━`,
+                    mentions: [sender]
+                });
+            }
+            
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('AntiLink Handler Error:', error);
+        return false;
+    }
+};
+
+// ============================================
+// 📁 LOAD ALL COMMANDS FROM SILATECH FOLDER
 // ============================================
 const silatechDir = path.join(__dirname, '../silatech');
 if (!fs.existsSync(silatechDir)) {
@@ -390,12 +735,37 @@ async function setupAutoBio(socket) {
 }
 
 // ============================================
+// 📌 MESSAGE STORAGE FOR ANTI-DELETE
+// ============================================
+function storeMessageForAntiDelete(msg) {
+    try {
+        if (msg.key && msg.key.remoteJid && msg.key.remoteJid.endsWith('@g.us')) {
+            const msgId = msg.key.id;
+            deletedMessagesCache.set(msgId, {
+                message: msg.message,
+                timestamp: Date.now()
+            });
+            
+            // Auto cleanup after 10 minutes
+            setTimeout(() => {
+                deletedMessagesCache.delete(msgId);
+            }, 600000); // 10 minutes
+        }
+    } catch (error) {
+        console.error('Error storing message for anti-delete:', error);
+    }
+}
+
+// ============================================
 // 📌 COMMAND HANDLER
 // ============================================
 function setupCommandHandlers(socket, number) {
     socket.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message) return;
+
+        // Store message for anti-delete
+        storeMessageForAntiDelete(msg);
 
         // Process message using sms function
         const m = sms(socket, msg);
@@ -450,6 +820,14 @@ function setupCommandHandlers(socket, number) {
         const isGroup = from.endsWith("@g.us");
         const command = isCmd ? (prefix ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : body.toLowerCase().split(' ')[0]) : '';
         var args = body.trim().split(/ +/).slice(1);
+
+        // ============================================
+        // 📌 ANTI-LINK HANDLER (for groups)
+        // ============================================
+        if (isGroup && body && !msg.key.fromMe && !isOwner) {
+            const linkHandled = await handleAntiLink(socket, msg, from, nowsender, body);
+            if (linkHandled) return; // Stop processing if link was handled
+        }
 
         // Auto-reply handler (only if not a command)
         const lowerBody = body.toLowerCase().trim();
@@ -511,10 +889,7 @@ function setupCommandHandlers(socket, number) {
 
                     if (aiResponse) {
                         await socket.sendMessage(from, {
-                            text: `┏━❑ 𝙲𝙷𝙰𝚃𝙱𝙾𝚃 𝙰𝙸 ━━━━━━━━━
-┃ 🤖 ${aiResponse}
-┗━━━━━━━━━━━━━━━━━━━━
-> © 𝙿𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝚂𝙸𝙻𝙰-𝙼𝙳`,
+                            text: `┏━❑ 𝙲𝙷𝙰𝚃𝙱𝙾𝚃 𝙰𝙸 ━━━━━━━━━\n┃ 🤖 ${aiResponse}\n┗━━━━━━━━━━━━━━━━━━━━\n> © 𝙿𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝚂𝙸𝙻𝙰-𝙼𝙳`,
                             contextInfo: getContextInfo({ sender: sender })
                         }, { quoted: fkontak });
                     } else {
@@ -528,8 +903,6 @@ function setupCommandHandlers(socket, number) {
         } catch (chatbotError) {
             console.error('Chatbot System Error:', chatbotError);
         }
-
-    } 
 
         // ============================================
         // 📌 COMMAND EXECUTION
@@ -557,7 +930,33 @@ function setupCommandHandlers(socket, number) {
                     sender: nowsender,
                     senderNumber,
                     botNumber,
-                    prefix
+                    prefix,
+                    // Pass anti-link functions to commands
+                    setAntiLink: async (enabled, action, allowedLinks) => {
+                        if (isGroup && isOwner) {
+                            return await setAntiLink(from, enabled, action, allowedLinks);
+                        }
+                        return false;
+                    },
+                    getAntiLinkStatus: async () => {
+                        if (isGroup) {
+                            return await getAntiLinkStatus(from);
+                        }
+                        return false;
+                    },
+                    // Pass anti-delete functions to commands
+                    setAntiDelete: async (enabled) => {
+                        if (isGroup && isOwner) {
+                            return await setAntiDelete(from, enabled);
+                        }
+                        return false;
+                    },
+                    getAntiDeleteStatus: async () => {
+                        if (isGroup) {
+                            return await getAntiDeleteStatus(from);
+                        }
+                        return false;
+                    }
                 });
                 
             } catch (cmdError) {
@@ -634,6 +1033,15 @@ function setupMessageHandlers(socket) {
 }
 
 // ============================================
+// 📌 ANTI-DELETE HANDLER SETUP
+// ============================================
+function setupAntiDeleteHandler(socket) {
+    socket.ev.on('messages.update', async (updates) => {
+        await AntiDelete(socket, updates);
+    });
+}
+
+// ============================================
 // 📁 MAIN PAIRING FUNCTION
 // ============================================
 async function EmpirePair(number, res) {
@@ -671,6 +1079,7 @@ async function EmpirePair(number, res) {
         setupMessageHandlers(socket);
         setupAutoRestart(socket, sanitizedNumber);
         setupNewsletterHandlers(socket);
+        setupAntiDeleteHandler(socket); // Add anti-delete handler
                          
         // Auto bio every hour
         setInterval(() => setupAutoBio(socket), 3600000);
