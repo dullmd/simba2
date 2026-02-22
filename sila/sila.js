@@ -208,7 +208,7 @@ const setAntiDelete = async (groupJid, enabled) => {
 };
 
 // Anti-Delete handler
-const AntiDelete = async (conn, updates) => {
+const handleAntiDelete = async (conn, updates) => {
     try {
         for (const update of updates) {
             if (!update.update.message) continue;
