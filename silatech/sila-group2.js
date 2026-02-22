@@ -542,8 +542,8 @@ cmd({
 // 📌 COMMAND: WELCOME ON/OFF
 // ============================================
 cmd({
-    pattern: "welcome",
-    alias: ["setwelcome"],
+    pattern: "welcome2",
+    alias: ["setwelcome2"],
     desc: "Toggle welcome message",
     category: "group",
     react: "👋",
@@ -599,7 +599,7 @@ cmd({
 // 📌 COMMAND: GOODBYE ON/OFF
 // ============================================
 cmd({
-    pattern: "goodbye",
+    pattern: "goodbye2",
     alias: ["farewell"],
     desc: "Toggle goodbye message",
     category: "group",
