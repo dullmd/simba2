@@ -2,7 +2,7 @@ module.exports = {
     // ============================================
     // 📌 MONGODB CONNECTION
     // ============================================
-    MONGODB_URI: process.env.MONGODB_URI || 'mongodb+srv://malvintech11_db_user:0SBgxRy7WsQZ1KTq@cluster0.xqgaovj.mongodb.net/',
+    MONGODB_URI: process.env.MONGODB_URI || 'mongodb+srv://sila_md:sila0022@sila.67mxtd7.mongodb.net/',
     
     // ============================================
     // 📌 BOT CONFIGURATION
