@@ -109,8 +109,8 @@ ${config.BOT_FOOTER}`;
 // 📌 COMMAND: ANTILINK (General Links)
 // ============================================
 cmd({
-    pattern: "antilink",
-    alias: ["antilinkgc"],
+    pattern: "antilink2",
+    alias: ["antilinkgc2"],
     desc: "Toggle anti-link protection",
     category: "security",
     react: "🔗",
